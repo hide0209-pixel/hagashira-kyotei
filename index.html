@@ -1,0 +1,2182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>波頭記念</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: 水面（濃紺の競走水面）の上に、紙の出走表を一枚置く。レース中は水面が全画面、操作は下端に集約 */
+:root {
+  --deep: #082430;      /* 水面の最深部・ページ地 */
+  --water: #0e3e52;     /* 競走水面 */
+  --paper: #eef2f3;     /* 出走表の紙 */
+  --ink: #13222b;       /* 紙の墨 */
+  --rule: #c5d0d5;      /* 罫線 */
+  --muted: #5b6d77;     /* 補足文字 */
+  --buoy: #ff6a1f;      /* ターンマーク（橙） */
+  --signal: #ffd23f;    /* 大時計の目安 */
+  --good: #2fbf71; --warn: #f0a020; --bad: #e5484d;
+  --font-display: "Dela Gothic One", "Hiragino Kaku Gothic StdN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-num: "Barlow Condensed", "Zen Kaku Gothic New", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--deep); color: var(--paper); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+button { font-family: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* ---------- 画面共通 ---------- */
+.screen { min-height: 100%; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background:
+    repeating-linear-gradient(172deg, rgba(255,255,255,.035) 0 2px, transparent 2px 22px),
+    radial-gradient(120% 70% at 50% 0%, #11506a 0%, var(--deep) 70%); }
+.wrap { max-width: 860px; margin: 0 auto; display: grid; gap: 18px; }
+.brand { display: flex; align-items: end; gap: 14px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(40px, 9vw, 68px); line-height: 1; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.brand h1 span { color: var(--buoy); }
+.brand p { margin: 0 0 6px; color: #a9c3cd; font-size: 13px; letter-spacing: .08em; }
+.sheet { background: var(--paper); color: var(--ink); border-radius: 4px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.35); color-scheme: light; }
+.sheet h2 { font-family: var(--font-display); font-weight: 400; font-size: 20px; margin: 0 0 4px; }
+.sheet .lead { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+.eyebrow { font-size: 11px; letter-spacing: .14em; color: var(--muted); font-weight: 700; }
+
+/* ---------- 能力設定 ---------- */
+.namefield { display: grid; gap: 4px; margin-bottom: 16px; }
+.namefield input { font: inherit; font-size: 17px; font-weight: 700; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 3px; background: #fff; color: var(--ink); max-width: 280px; }
+.budget { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-top: 3px solid var(--ink); border-bottom: 1px solid var(--rule); padding: 8px 0; margin-bottom: 6px; flex-wrap: wrap; }
+.budget b { font-family: var(--font-num); font-size: 34px; line-height: 1; }
+.budget b.zero { color: var(--muted); }
+.stat { display: grid; grid-template-columns: 7.5em 1fr 3em; align-items: center; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.stat label { font-weight: 900; }
+.stat.favrow { grid-template-columns: 7.5em 1fr; }
+.stat small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: -2px; }
+.stat output { font-family: var(--font-num); font-size: 24px; font-weight: 700; text-align: right; }
+input[type=range] { width: 100%; accent-color: var(--ink); min-width: 0; }
+.seg { box-sizing: border-box; max-width: 100%; display: inline-flex; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 7px 16px; font-weight: 700; color: var(--ink); }
+.seg button + button { border-left: 2px solid var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+.wrapseg { flex-wrap: wrap; }
+.styleends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); grid-column: 2; margin-top: -4px; }
+.cta { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.btn { border: 2px solid var(--ink); background: transparent; color: var(--ink); padding: 10px 18px; border-radius: 3px; font-weight: 900; font-size: 15px; }
+.btn.primary { background: var(--buoy); border-color: var(--buoy); color: #1a0d05; }
+.btn.light { border-color: var(--paper); color: var(--paper); }
+
+/* ---------- 2組の能力バー ---------- */
+.pair { padding: 12px 0 10px; border-bottom: 1px solid var(--rule); display: grid; gap: 4px; }
+.pair-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pair-h div { display: grid; line-height: 1.1; }
+.pair-h div:last-child { text-align: right; }
+.pair-h label, .pair-h span.l { font-weight: 900; font-size: 15px; }
+.pair-h output { font-family: var(--font-num); font-size: 30px; font-weight: 700; }
+.pair-h .perk { font-size: 10px; font-weight: 900; background: var(--buoy); color: #1a0d05; padding: 0 5px; border-radius: 2px; justify-self: start; }
+.pair-h div:last-child .perk { justify-self: end; }
+.pair input[type=range] { height: 28px; }
+.pair small { color: var(--muted); font-size: 12px; line-height: 1.45; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pair small span:last-child { text-align: right; }
+/* 3分割バー */
+.trio .pair-h div:nth-child(2) { text-align: center; }
+.trio .pair-h div:nth-child(2) .perk { justify-self: center; }
+.tribar { display: flex; height: 12px; border: 1.5px solid var(--ink); border-radius: 2px; overflow: hidden; margin: 2px 0 4px; }
+.tribar i { display: block; height: 100%; }
+#tb_judge { background: #5b6d77; } #tb_stam { background: var(--good); } #tb_prop { background: var(--buoy); }
+.trislider { display: grid; grid-template-columns: 5.5em 1fr; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.pair small.tri { grid-template-columns: 1fr; gap: 3px; }
+.pair small.tri span:last-child { text-align: left; }
+.pair small.tri b { color: var(--ink); }
+@media (max-width: 520px) { .pair small { grid-template-columns: 1fr; gap: 4px; } .pair small span:last-child { text-align: left; } }
+
+/* ---------- 出走表 ---------- */
+.cond { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0; border: 2px solid var(--ink); margin-bottom: 14px; }
+.cond div { padding: 8px 10px; border-right: 1px solid var(--rule); }
+.cond div:last-child { border-right: 0; }
+.cond span { display: block; font-size: 11px; color: var(--muted); letter-spacing: .1em; font-weight: 700; }
+.cond b { font-size: 18px; }
+.tblwrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+table.card { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 13px; }
+table.card th { font-size: 11px; color: var(--muted); font-weight: 700; text-align: center; padding: 4px 6px; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+table.card td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: center; white-space: nowrap; }
+table.card td.nm { text-align: left; font-weight: 700; }
+table.card tr.me td { background: #fff3c4; }
+table.card td.n { font-family: var(--font-num); font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wk { display: inline-grid; place-items: center; width: 28px; height: 28px; font-family: var(--font-num); font-weight: 700; font-size: 19px; border: 1.5px solid var(--ink); }
+.mot { display: inline-flex; gap: 2px; align-items: baseline; }
+.mot i { font-style: normal; font-size: 11px; }
+.up { color: #138a50; } .dn { color: #c2362d; }
+.tiltbox { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 16px; padding-top: 14px; border-top: 3px solid var(--ink); }
+@media (max-width: 640px) { .tiltbox { grid-template-columns: 1fr; } }
+.tilts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tilts button { border: 2px solid var(--ink); background: #fff; color: var(--ink); font-family: var(--font-num); font-weight: 700; font-size: 18px; padding: 4px 10px; border-radius: 3px; min-width: 52px; }
+.tilts button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+.meters { display: grid; gap: 7px; }
+.meter { display: grid; grid-template-columns: 4em 1fr 2.6em; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.meter .bar { height: 10px; background: #d9e1e4; position: relative; }
+.meter .bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); }
+.meter .num { text-align: right; font-size: 16px; }
+.note { font-size: 12px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+
+/* ---------- レース画面 ---------- */
+#scr-race { position: fixed; inset: 0; background: var(--water); overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hud { position: absolute; left: 0; right: 0; top: 0; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; gap: 10px; pointer-events: none; }
+.hud .l { display: grid; gap: 6px; min-width: 0; }
+.lapbox { display: inline-flex; gap: 10px; align-items: baseline; background: rgba(8,36,48,.82); padding: 6px 10px; border-radius: 3px; width: max-content; max-width: 100%; }
+.lapbox b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.lapbox .num { font-size: 18px; color: #bfe3ee; }
+.stambox { display: inline-flex; align-items: center; gap: 6px; background: rgba(8,36,48,.82); padding: 4px 8px; border-radius: 3px; width: max-content; font-size: 11px; font-weight: 900; color: #a9c3cd; }
+.stambox .sbar { position: relative; width: 110px; height: 8px; background: #23495a; border-radius: 2px; overflow: hidden; }
+.stambox .sbar i { position: absolute; inset: 0 auto 0 0; background: var(--good); }
+.stambox .sbar i.low { background: var(--bad); }
+.stambox .sbar em { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--signal); }
+.stambox b { color: var(--paper); font-size: 14px; min-width: 4.2em; }
+.stambox.iron .sbar i { background: linear-gradient(90deg, var(--good), #9be8bf); }
+.gbtns button:disabled { opacity: .35; }
+#order { display: flex; gap: 3px; }
+#order .chip { width: 30px; height: 34px; display: grid; place-items: center; font-family: var(--font-num); font-weight: 700; font-size: 19px; line-height: 1; position: relative; border: 1px solid rgba(0,0,0,.4); }
+#order .chip.me { outline: 2px solid var(--signal); outline-offset: 1px; }
+#order .chip small { position: absolute; bottom: -14px; font-size: 10px; color: #fff; font-family: var(--font-body); }
+#order .chip.gone { opacity: .45; }
+#mini { width: 170px; height: 74px; background: rgba(8,36,48,.82); border-radius: 3px; flex: none; }
+@media (max-width: 480px) { #mini { width: 120px; height: 54px; } }
+#ticker { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 146px); display: grid; gap: 4px; pointer-events: none; max-width: min(420px, calc(100% - 24px)); }
+#ticker div { background: rgba(8,36,48,.86); padding: 4px 10px; border-left: 4px solid #8fb7c4; font-size: 13px; font-weight: 700; border-radius: 0 3px 3px 0; animation: tin .25s ease-out; }
+#ticker div.good { border-color: var(--good); } #ticker div.warn { border-color: var(--warn); } #ticker div.bad { border-color: var(--bad); }
+@keyframes tin { from { transform: translateX(-8px); opacity: .3; } }
+.dock { position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); display: grid; justify-items: center; gap: 10px; pointer-events: none; }
+.dock > * { pointer-events: auto; }
+#startUI { display: flex; align-items: center; gap: 14px; background: rgba(8,36,48,.9); padding: 10px 14px; border-radius: 6px; }
+#clockWrap { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); width: min(80vw, 50vh, 440px); aspect-ratio: 1; pointer-events: none; }
+#clock { width: 100%; height: 100%; display: block; }
+#btnOkoshi { font-family: var(--font-display); font-size: 26px; padding: 16px 22px; border: 0; border-radius: 6px; background: var(--buoy); color: #1a0d05; box-shadow: 0 4px 0 #a33c0a; }
+#btnOkoshi:active { transform: translateY(3px); box-shadow: 0 1px 0 #a33c0a; }
+#btnOkoshi.now { background: var(--good); color: #04210f; box-shadow: 0 4px 0 #13703d, 0 0 0 4px rgba(47,191,113,.45), 0 0 24px rgba(47,191,113,.8); }
+#btnOkoshi:disabled { background: #3b5865; color: #9fb6bf; box-shadow: none; }
+.starthint { font-size: 12px; color: #a9c3cd; max-width: 13em; line-height: 1.45; }
+#stShow { font-family: var(--font-num); font-size: 30px; font-weight: 700; min-height: 1em; }
+#cruiseUI { width: min(520px, 100%); background: rgba(8,36,48,.94); border-radius: 6px; padding: 8px 8px 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 2px solid var(--good); }
+#cruiseUI > span { font-weight: 900; font-size: 13px; color: #9be8bf; }
+#cruiseBtn { border: 0; border-radius: 5px; background: var(--good); color: #04210f; font-weight: 900; font-size: 16px; padding: 8px 14px; display: grid; justify-items: center; line-height: 1.15; }
+#cruiseBtn small { font-size: 10px; font-weight: 700; }
+#cruiseBtn kbd { font-family: var(--font-num); font-size: 10px; opacity: .7; }
+#cruiseUI.on { border-color: var(--signal); } #cruiseUI.on > span { color: var(--signal); } #cruiseUI.on #cruiseBtn { background: #3b5865; color: var(--paper); }
+#guardUI { width: min(520px, 100%); background: rgba(8,36,48,.94); border-radius: 6px; padding: 8px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: stretch; border: 2px solid var(--warn); }
+#guardUI .gt { align-self: center; font-weight: 900; font-size: 13px; color: var(--warn); line-height: 1.25; }
+#guardUI button { border: 2px solid #8fb7c4; background: #0f3a4b; color: var(--paper); border-radius: 4px; padding: 6px 4px; display: grid; justify-items: center; font-weight: 900; font-size: 15px; line-height: 1.2; min-width: 0; }
+#guardUI button small { font-size: 10px; color: #a9c3cd; font-weight: 500; }
+#guardUI button kbd { font-family: var(--font-num); font-size: 10px; color: #8fb7c4; }
+#gBump { border-color: var(--bad) !important; }
+@media (max-width: 420px) { #guardUI { grid-template-columns: 1fr 1fr; } #guardUI .gt { grid-column: 1 / -1; } }
+#tacUI { width: min(640px, 100%); background: rgba(8,36,48,.94); border-radius: 6px; padding: 10px; display: grid; gap: 8px; }
+#tacUI .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#tacUI .head b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+#tacUI .head span { font-size: 12px; color: #a9c3cd; }
+.fsrow { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 13px; font-weight: 700; }
+.fsrow .fsl { font-size: 11px; color: var(--signal); letter-spacing: .1em; }
+.fsrow .fs { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.fsrow .wk { width: 20px; height: 20px; font-size: 14px; }
+.timer { height: 5px; background: #23495a; } .timer i { display: block; height: 100%; background: var(--signal); }
+.tacs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { .tacs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tacs button { border: 2px solid #8fb7c4; background: #0f3a4b; color: var(--paper); border-radius: 4px; padding: 8px 4px 6px; display: grid; gap: 1px; justify-items: center; position: relative; min-width: 0; }
+.tacs button b { font-size: 16px; font-weight: 900; }
+.tacs button small { font-size: 10.5px; color: #a9c3cd; line-height: 1.3; text-align: center; }
+.tacs button kbd { font-family: var(--font-num); font-size: 11px; color: #8fb7c4; }
+.tacs button.rec { border-color: var(--signal); }
+.tacs button:disabled { opacity: .28; border-color: #3b5865; cursor: not-allowed; }
+.tacs button:disabled small { visibility: hidden; }
+.tacs button.rec::after { content: "読み"; position: absolute; top: -9px; right: 4px; background: var(--signal); color: #1a1405; font-size: 10px; font-weight: 900; padding: 0 5px; border-radius: 2px; }
+#gaugeUI { width: min(520px, 100%); background: rgba(8,36,48,.94); border-radius: 6px; padding: 12px 14px; display: grid; gap: 8px; border: 0; color: var(--paper); text-align: left; }
+#gaugeUI .gh { display: flex; justify-content: space-between; font-weight: 900; }
+#gaugeUI .gh span { font-size: 12px; color: #a9c3cd; font-weight: 500; }
+.gbtns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.gbtns button { border: 0; border-radius: 5px; padding: 12px 6px; font-weight: 900; font-size: 17px; background: #ffd23f; color: #1a1405; display: flex; justify-content: center; align-items: baseline; gap: 6px; }
+.gbtns button kbd { font-family: var(--font-num); font-size: 11px; opacity: .7; }
+#gV { background: var(--buoy); color: #1a0d05; }
+#gW { background: #6fd3ff; color: #06202b; }
+#gT { background: #2fbf71; color: #04210f; }
+.gbar .wmark.t { background: repeating-linear-gradient(45deg, #e040fb 0 5px, #b02ccf 5px 10px); }
+.gbar .wmark { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, #36c5f0 0 5px, #1a8fb8 5px 10px); outline: 2px solid #fff; outline-offset: -2px; }
+.techshow { font-weight: 900; font-size: 16px; }
+.techshow .badge { font-size: 13px; padding: 2px 8px; margin: 0; vertical-align: 0; }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.badge { display: inline-block; font-size: 10px; font-weight: 900; padding: 0 4px; margin-left: 4px; border-radius: 2px; vertical-align: 2px; }
+.badge.v { background: var(--buoy); color: #1a0d05; } .badge.w { background: #6fd3ff; color: #06202b; } .badge.t { background: #2fbf71; color: #04210f; }
+.gbar { position: relative; height: 34px; background: #0b1f28; border: 2px solid rgba(255,255,255,.3); border-radius: 4px; overflow: hidden; }
+.gbar .zone { position: absolute; top: 0; bottom: 0; background: #c9971b; box-shadow: inset 2px 0 0 #fff, inset -2px 0 0 #fff; }
+.gbar .zone i { position: absolute; top: 0; bottom: 0; background: #22d36b; box-shadow: inset 0 0 0 2px #0b5d2e; }
+.gbar .mk { position: absolute; top: -2px; bottom: -2px; width: 6px; background: #fff; margin-left: -3px; box-shadow: 0 0 0 2px #000, 0 0 10px #fff; z-index: 2; }
+.glegend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; font-weight: 700; color: #cfe0e6; }
+.glegend span::before { content: ""; display: inline-block; width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; border-radius: 2px; }
+.glegend .lp::before { background: #22d36b; } .glegend .lg::before { background: #c9971b; } .glegend .lb::before { background: #0b1f28; border: 1px solid rgba(255,255,255,.4); }
+.glegend .lt.w::before { background: #36c5f0; } .glegend .lt.t::before { background: #e040fb; }
+.flash { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--font-display); font-size: clamp(30px, 7vw, 56px); pointer-events: none; text-shadow: 0 3px 0 rgba(0,0,0,.5); animation: pop .9s ease-out forwards; white-space: nowrap; }
+@keyframes pop { 0% { transform: translate(-50%, -40%) scale(.7); opacity: 0; } 15% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(-50%, -60%); opacity: 0; } }
+#resultUI { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(6,24,32,.72); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px; overflow-y: auto; }
+#resultUI .sheet { width: min(560px, 100%); }
+.resbig { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 3px solid var(--ink); padding-bottom: 10px; margin-bottom: 8px; }
+.resbig b { font-family: var(--font-display); font-weight: 400; font-size: 44px; line-height: 1; }
+.resbig span { font-weight: 700; color: var(--muted); }
+table.res { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.res td { padding: 6px 4px; border-bottom: 1px solid var(--rule); }
+table.res td.p { font-family: var(--font-num); font-size: 22px; font-weight: 700; width: 2.4em; }
+table.res tr.me td { background: #fff3c4; }
+.kim { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0 14px; }
+.kim div span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: .1em; }
+.kim div b { font-size: 20px; }
+/* ---------- シリーズ ---------- */
+.days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 2px solid var(--ink); margin-bottom: 16px; }
+.days div { padding: 8px 8px 7px; border-right: 1px solid var(--rule); line-height: 1.25; }
+.days div:last-child { border-right: 0; }
+.days b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.days span { font-size: 11px; color: var(--muted); font-weight: 700; }
+.days .now { background: var(--ink); color: var(--paper); }
+.days .now span { color: #b9c9d0; }
+.days .done { color: var(--muted); }
+.nextcard { border: 2px solid var(--ink); border-left: 10px solid var(--buoy); padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; background: #fff; }
+.nextcard .t { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .08em; }
+.nextcard .h { font-family: var(--font-display); font-weight: 400; font-size: 22px; line-height: 1.2; }
+.nextcard .s { font-size: 13px; font-weight: 700; }
+.sec { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border-bottom: 3px solid var(--ink); margin: 18px 0 4px; padding-bottom: 4px; flex-wrap: wrap; }
+.sec h2 { margin: 0; }
+.sec span { font-size: 12px; color: var(--muted); }
+table.st { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.st td, table.st th { padding: 6px 4px; border-bottom: 1px solid var(--rule); text-align: left; white-space: nowrap; }
+table.st th { font-size: 11px; color: var(--muted); }
+table.st td.r { font-family: var(--font-num); font-size: 17px; font-weight: 700; width: 2em; text-align: right; padding-right: 8px; }
+table.st td.pt { font-family: var(--font-num); font-size: 18px; font-weight: 600; text-align: right; }
+table.st td.nm { font-weight: 700; max-width: 9em; overflow: hidden; text-overflow: ellipsis; }
+table.st tr.me td { background: #fff3c4; }
+table.st tr.cut td { border-bottom: 2px dashed var(--buoy); }
+table.st tr.out td { color: var(--muted); }
+.rides { display: inline-flex; gap: 2px; }
+.rides i { font-style: normal; display: inline-grid; place-items: center; min-width: 18px; height: 18px; font-family: var(--font-num); font-weight: 700; font-size: 13px; background: #dfe6e9; border-radius: 2px; padding: 0 2px; }
+.rides i.w1 { background: var(--ink); color: var(--paper); }
+.rides i.w2 { background: #5b6d77; color: #fff; }
+.rides i.bad { background: var(--bad); color: #fff; }
+.lineups { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.lu { border: 1.5px solid var(--rule); background: #fff; padding: 8px 10px; border-radius: 4px; }
+.lu h3 { margin: 0 0 6px; font-size: 14px; display: flex; justify-content: space-between; }
+.lu h3 span { color: var(--muted); font-size: 12px; font-weight: 700; }
+.lu ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.lu li { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 700; min-width: 0; }
+.lu li .wk { width: 22px; height: 22px; font-size: 15px; flex: none; }
+.lu li.me { background: #fff3c4; }
+.lu li em { margin-left: auto; font-style: normal; font-family: var(--font-num); font-size: 15px; color: var(--muted); }
+.champ { border: 3px solid var(--buoy); padding: 14px; background: #fff; margin-bottom: 14px; }
+.champ b { font-family: var(--font-display); font-weight: 400; font-size: 26px; }
+@media (max-width: 520px) {
+  .days div { padding: 6px 5px; } .days b { font-size: 14px; } .days span { font-size: 10px; }
+  .nextcard .btn { width: 100%; }
+  table.st .hide-s { display: none; }
+}
+/* ---------- スマホ ---------- */
+.wrap > *, .sheet { min-width: 0; }
+.boatcards { display: none; gap: 8px; }
+.bc { border: 1.5px solid var(--rule); border-radius: 4px; padding: 8px 10px; display: grid; gap: 6px; background: #fff; }
+.bc.me { border: 2px solid var(--ink); background: #fff8d9; }
+.bc-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bc-h .nm { font-weight: 900; font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-h .tl { font-family: var(--font-num); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.bc-h .tl small { font-family: var(--font-body); font-size: 10px; color: var(--muted); font-weight: 700; margin-right: 3px; }
+.bc-g { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 6px; }
+.bc-g div { display: grid; line-height: 1.2; }
+.bc-g span { font-size: 10px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.bc-g b { font-family: var(--font-num); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bc-g b i { font-style: normal; font-size: 11px; margin-left: 1px; }
+.bc-g b.t { font-family: var(--font-body); font-size: 13px; font-weight: 700; }
+.bc-sep { border-top: 1px dashed var(--rule); padding-top: 5px; }
+@media (max-width: 700px) {
+  #scr-card .tblwrap { display: none; }
+  .boatcards { display: grid; }
+}
+@media (max-width: 520px) {
+  .screen { padding-block: 18px 32px; }
+  .sheet { padding: 16px 14px; }
+  .brand p { margin: 0; }
+  .stat { grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .stat label { grid-column: 1; grid-row: 1; }
+  .stat output { grid-column: 2; grid-row: 1; }
+  .stat input[type=range] { grid-column: 1 / -1; grid-row: 2; height: 28px; }
+  .styleends { grid-column: 1 / -1; }
+  .stat.favrow { grid-template-columns: 1fr; }
+  .stat.favrow .seg { grid-row: 2; }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; }
+  .seg button { padding: 9px 4px; white-space: nowrap; font-size: 14px; }
+  .wrapseg { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wrapseg button + button { border-left: 0; }
+  .wrapseg button { border-top: 2px solid var(--ink); margin-top: -2px; }
+  .wrapseg button:nth-child(even) { border-left: 2px solid var(--ink); }
+  .cond { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cond div:nth-child(2) { border-right: 0; }
+  .cond div:nth-child(-n+2) { border-bottom: 1px solid var(--rule); }
+  .tilts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tilts button { min-width: 0; padding: 7px 0; }
+  .cta { flex-direction: column-reverse; align-items: stretch; }
+  .cta .btn { width: 100%; padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<section id="scr-setup" class="screen">
+  <div class="wrap">
+    <div class="brand"><h1>波頭<span>記念</span></h1><p>6艇立て・3周　一発勝負の競艇</p></div>
+    <div class="sheet">
+      <h2>選手登録</h2>
+      <p class="lead">能力を配分します。CPU選手も同じルール（スタート＋ターン＝110、判断力＋スタミナ＋プロペラ＝130）でランダムに配分されます。</p>
+      <div class="namefield"><span class="eyebrow">選手名</span><input id="pName" maxlength="10" autocomplete="off"></div>
+      <div class="budget"><span class="eyebrow">スタート＋ターン＝110／判断力＋スタミナ＋プロペラ＝130</span><span class="num" style="font-weight:700">各10〜100</span></div>
+      <div id="stats"></div>
+      <div class="stat">
+        <label for="sStyle">スタイル</label><input type="range" id="sStyle" min="0" max="100" step="5"><output id="oStyle" class="num"></output>
+        <div class="styleends"><span>きれいに回る</span><span>転覆覚悟でダンプ</span></div>
+        <small>強気ほど旋回速度が上がる（最大+2%）が、大回りになる（最大2m外）。丁寧ほど速度は上がらないが小回りできる（最大2m内）。強気はダンプが得意だが、波が高いと転覆の危険が増す。</small>
+      </div>
+      <div class="stat favrow">
+        <label>得意コース</label>
+        <div class="seg" id="favSeg"><button data-v="in">イン</button><button data-v="center">センター</button><button data-v="out">アウト</button></div>
+        <small>イン=1・2コース／センター=3・4コース／アウト=5・6コース。合致するとスタートとターンが少し良くなる。</small>
+      </div>
+      <div class="stat favrow">
+        <label>得意ターン</label>
+        <div id="techShow" class="techshow"></div>
+        <small>Vモンキー：ターン100・スタイル0〜25・判断力50以上。全速のまま内へ小さく回る（緑帯の中央が芯）。ウイリー：ターン100・スタイル75〜100・プロペラ50以上。引き波に強く出口の加速が鋭い（緑帯の後ろ寄りが芯・波が高いと転覆しやすい）。全速ツケマイ：ターン80以上・スタイル26〜74・判断力30〜50。すぐ内の艇にぴったり付けて全速で回り、相手を締めつける（緑帯の前寄りが芯・外すと接触の危険）。どの技もスタミナを使う。</small>
+      </div>
+      <div class="cta" style="margin-top:18px"><button class="btn" id="toCard">1レースだけ走る</button><button class="btn" id="srResume" hidden>シリーズを続ける</button><button class="btn primary" id="srStart">4日間シリーズに出場</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="scr-card" class="screen" hidden>
+  <div class="wrap">
+    <div class="brand"><h1>波頭<span>記念</span></h1><p id="raceSub">第1レース　3周</p></div>
+    <div class="sheet">
+      <h2>出走表</h2>
+      <p class="lead">枠番・水面・モーターは抽選済み。チルトだけはあなたが決めます。</p>
+      <div class="cond" id="cond"></div>
+      <div class="tblwrap"><table class="card" id="cardTbl"></table></div>
+      <div class="boatcards" id="cardList"></div>
+      <p class="note">モーター欄は「調整後の値」。小さい数字はプロペラ調整による増減（プロペラ調整力が高いほどプラスに振れやすい）。</p>
+      <div class="tiltbox">
+        <div>
+          <span class="eyebrow">あなたのチルト角度</span>
+          <div class="tilts" id="tilts"></div>
+          <p class="note">チルトを跳ねるほど直線の伸びが増し、出足とターンの握りが落ちる。波が高い日は跳ねるほど不安定。</p>
+          <div id="propBox" hidden style="margin-top:12px">
+            <span class="eyebrow">ペラ調整（ペラ職人）</span>
+            <div class="seg" id="propSeg" style="margin-top:6px"><button data-v="deashi">出足寄り</button><button data-v="bal">バランス</button><button data-v="nobi">伸び寄り</button></div>
+            <p class="note">全項目+15の上に、出足寄りは瞬発力+8・パワー−8、伸び寄りはパワー+8・瞬発力−8。</p>
+          </div>
+        </div>
+        <div>
+          <span class="eyebrow">あなたの足色（このチルト・この水面で）</span>
+          <div class="meters" id="meters"></div>
+        </div>
+      </div>
+      <div class="tiltbox">
+        <div>
+          <span class="eyebrow">進入（前付け）</span>
+          <div class="seg wrapseg" id="maeSeg"></div>
+          <p class="note">内のコースを奪いに行く。成功すると内の艇は外へ押し出される。前付けした艇は助走が短く、起こしの目安が±0.05秒ほどぶれる。強引なスタイルほど成功しやすく、1号艇や強引な選手は抵抗してくる。</p>
+        </div>
+        <div>
+          <span class="eyebrow">隊形</span>
+          <div class="seg" id="formSeg"><button data-v="auto">おまかせ</button><button data-v="slow">スロー</button><button data-v="dash">ダッシュ</button><button data-v="kado">カド</button></div>
+          <p class="note">ダッシュ：自分から外は全艇ダッシュに（1コースは不可）。カド：ダッシュ勢の最内（カド）を取りに行く。スローなら引いてカドに、外のダッシュならカド位置へ動く（締められることもある）。スロー：自分まで全艇スローに。スローが多いほど・前付けが入るほどインは深くなり、スロー勢の助走が短くなる。</p>
+        </div>
+      </div>
+      <div class="cta" style="margin-top:18px">
+        <button class="btn" id="backSetup">能力を作り直す</button>
+        <button class="btn" id="reroll">別の番組にする</button>
+        <button class="btn primary" id="go">レース開始</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="scr-series" class="screen" hidden>
+  <div class="wrap">
+    <div class="brand"><h1>波頭<span>記念</span></h1><p id="srSub">一般戦　4日間</p></div>
+    <div class="sheet">
+      <div class="days" id="srDays"></div>
+      <div id="srNext"></div>
+      <div id="srBody"></div>
+      <div class="cta" style="margin-top:18px"><button class="btn" id="srQuit">シリーズをやめる</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="scr-race" hidden>
+  <canvas id="cv"></canvas>
+  <div class="hud">
+    <div class="l">
+      <div class="lapbox"><b id="lapLbl">待機行動</b><span class="num" id="spd"></span></div>
+      <div class="stambox" id="stamBox"><span>体力</span><div class="sbar"><i id="stamFill"></i><em id="stamCost"></em></div><b class="num" id="stamNum"></b></div>
+      <div id="order"></div>
+    </div>
+    <canvas id="mini"></canvas>
+  </div>
+  <div id="ticker"></div>
+  <div id="clockWrap" aria-hidden="true"><canvas id="clock"></canvas></div>
+  <div class="dock">
+    <div id="cruiseUI" hidden>
+      <span id="cruiseTxt"></span>
+      <button id="cruiseBtn"><span id="cruiseLbl">巡航</span><small id="cruiseSub">自動でゴールまで（早送り）</small><kbd>C</kbd></button>
+    </div>
+    <div id="guardUI" hidden>
+      <span class="gt" id="guardTxt"></span>
+      <button id="gBlock">締める<small>進路をふさぎ引き波を浴びせる</small><kbd>Q</kbd></button>
+      <button id="gBump">幅寄せ<small>横から当てて減速させる</small><kbd>E</kbd></button>
+    </div>
+    <div id="tacUI" hidden>
+      <div class="head"><b id="tacHead">1周1マーク</b><span id="tacSub">戦法を選ぶ（1〜5キー）</span></div>
+      <div id="tacFs" class="fsrow" hidden></div>
+      <div class="timer"><i id="tacTimer"></i></div>
+      <div class="tacs" id="tacs"></div>
+    </div>
+    <div id="gaugeUI" hidden>
+      <div class="gh">ターン！ <span id="gHint">緑で タップ / Space</span></div>
+      <div class="gbar" id="gBar"><div class="zone" id="gZone"><i id="gPerf"></i></div><div class="wmark" id="gWm" hidden></div><div class="mk" id="gMk"></div></div>
+      <div class="glegend"><span class="lp">完璧</span><span class="lg">まずまず</span><span class="lt" id="gLegT" hidden></span><span class="lb">帯の外＝失敗</span></div>
+      <div class="gbtns"><button id="gTurn">ターン<kbd>Space</kbd></button><button id="gV" hidden>Vモンキー<kbd>V・体35</kbd></button><button id="gW" hidden>ウイリー<kbd>W・体35</kbd></button><button id="gT" hidden>ツケマイ<kbd>T・体25</kbd></button></div>
+    </div>
+    <div id="startUI">
+      <div style="display:grid; gap:6px; justify-items:start">
+        <button id="btnOkoshi">起こし！</button>
+        <div class="starthint" id="startHint">黄色の範囲で起こせばフライングしない（早い端ほど好スタート）。直前はスローになり、黄色の間はボタンが緑に光る。</div>
+        <div id="stShow"></div>
+      </div>
+    </div>
+  </div>
+  <div id="resultUI" hidden></div>
+</section>
+<script>
+// ===== 波頭記念 レースエンジン =====
+const KY = (() => {
+  const R_REF = 20, HALF = 115, LINE_X = -15;
+  const L_H1 = HALF - LINE_X, TL = Math.PI * R_REF, L_BK = 2 * HALF, L_H2 = LINE_X + HALF;
+  const LAP = L_H1 + TL + L_BK + TL + L_H2, LAPS = 3, RACE_LEN = LAP * LAPS;
+  const TS = [], TE = [];
+  for (let k = 0; k < 6; k++) { const s = Math.floor(k / 2) * LAP + L_H1 + (k % 2) * (TL + L_BK); TS.push(s); TE.push(s + TL); }
+  const BRAKE = 9, APPROACH = 70, PROMPT_OPEN = 95, PROMPT_CLOSE = 32, GAUGE = 28;
+  const WAKE_LIFE = 3.0, D_MIN = 5, D_MAX = 72, SEP = 3.0, OVL = 4.8, TOTAL = 220;
+  const TAC = { nige: '先マイ', makuri: 'まくり', sashi: '差し', makurizashi: 'まくり差し', dump: 'ダンプ' };
+  const TAC_KEYS = ['nige', 'makuri', 'sashi', 'makurizashi', 'dump'];
+
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gauss(rng) { let u = 0; while (u === 0) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()); }
+  const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+
+  // ---- コース幾何 ----
+  function posAt(s, d) {
+    if (s < 0) return { x: LINE_X + s, y: d, a: 0 };
+    let u = s % LAP;
+    if (u < L_H1) return { x: LINE_X + u, y: d, a: 0 };
+    u -= L_H1;
+    if (u < TL) { const f = u / TL * Math.PI; return { x: HALF + d * Math.sin(f), y: d * Math.cos(f), a: -f }; }
+    u -= TL;
+    if (u < L_BK) return { x: HALF - u, y: -d, a: Math.PI };
+    u -= L_BK;
+    if (u < TL) { const f = u / TL * Math.PI; return { x: -HALF - d * Math.sin(f), y: -d * Math.cos(f), a: Math.PI - f }; }
+    u -= TL;
+    return { x: -HALF + u, y: d, a: 0 };
+  }
+  function segInfo(s) {
+    if (s < 0) return { turn: false, k: 0, dist: TS[0] - s, straight: 'home' };
+    for (let k = 0; k < 6; k++) {
+      if (s < TS[k]) return { turn: false, k, dist: TS[k] - s, straight: k % 2 === 0 ? 'home' : 'back' };
+      if (s < TE[k]) return { turn: true, k, prog: (s - TS[k]) / TL, dist: 0, straight: null };
+    }
+    return { turn: false, k: 6, dist: Infinity, straight: 'home' };
+  }
+  const turnLabel = k => `${Math.floor(k / 2) + 1}周${k % 2 + 1}マーク`;
+
+  // ---- 生成 ----
+  const FAM = ['佐藤', '鈴木', '高橋', '田中', '渡辺', '伊藤', '山本', '中村', '小林', '加藤', '吉田', '山田', '松本', '井上', '木村', '清水', '山崎', '池田', '橋本', '阿部', '石川', '前田', '藤田', '岡田', '後藤', '村上', '近藤', '坂本', '遠藤', '青木', '西村', '福田', '太田', '三浦', '藤原', '松田', '中島', '原田', '小野', '竹内', '金子', '和田', '中野', '上田', '野口', '菅原', '大野', '久保'];
+  const GIV = ['翔太', '大輔', '健太', '拓也', '雄一', '隆', '誠', '浩二', '直樹', '亮', '和也', '達也', '剛', '修', '祐介', '啓太', '慎吾', '光', '蓮', '陸', '優斗', '大地', '美咲', '彩', '遥', '千尋', '真由', '勇気', '颯', '海斗'];
+  function randomName(rng, used) { let n; do { n = pick(rng, FAM) + ' ' + pick(rng, GIV); } while (used.has(n)); used.add(n); return n; }
+  // 能力は2組：スタート＋ターン＝110、判断力＋スタミナ＋プロペラ調整力＝130（各10〜100、5刻み）
+  const PAIR = 110, TRIO = 130;
+  function randomTrio(rng) {
+    const v = [10, 10, 10]; let left = (TRIO - 30) / 5;
+    while (left > 0) { const i = Math.floor(rng() * 3); if (v[i] < 100) { v[i] += 5; left--; } }
+    return { judge: v[0], stam: v[1], prop: v[2] };
+  }
+  function randomAb(rng) {
+    const s = 10 + 5 * Math.floor(rng() * 19);
+    return { start: s, turn: PAIR - s, ...randomTrio(rng) };
+  }
+  // スタミナ：得意ターンの燃料。スタミナ100は「鉄人」
+  const COST = { v: 35, w: 35, t: 25, n: 5 };
+  const stamOK = (b, t) => b.stam >= COST[t];
+  // プロペラ調整：100なら全項目+15の上に、出足寄り／伸び寄りへ8ずつ振れる（ペラ職人）
+  const PROP_DIRS = ['deashi', 'bal', 'nobi'];
+  function propAdj(rng, ab, dir) {
+    if (ab.prop >= 100) {
+      const sh = dir === 'deashi' ? 8 : dir === 'nobi' ? -8 : 0;
+      return { burst: 15 + sh, start: 15, power: 15 - sh };
+    }
+    const a = {}; for (const k of ['burst', 'start', 'power']) a[k] = Math.round((ab.prop - 50) / 50 * 12 * (0.5 + 0.5 * rng())); return a;
+  }
+  function applyProp(b, dir) {
+    if (b.ab.prop < 100) return;
+    b.propDir = dir; b.adj = propAdj(null, b.ab, dir);
+    for (const k of ['burst', 'start', 'power']) b.eff[k] = clamp(b.motor[k] + b.adj[k], 0, 100);
+  }
+  function makeCond(rng) {
+    const ws = Math.floor(rng() * 8);
+    const dir = ws === 0 ? 'calm' : pick(rng, ['tail', 'head', 'head', 'tail', 'left', 'right']);
+    const tail = dir === 'tail' ? ws : dir === 'head' ? -ws : 0;
+    const cross = (dir === 'left' || dir === 'right') ? ws : 0;
+    const wave = Math.max(0, Math.round(ws * 1.1 + rng() * 3 - 1));
+    const hard = Math.round(rng() * 100);
+    const weather = pick(rng, ws >= 5 ? ['曇り', '雨', '曇り'] : ['晴', '晴', '曇り', '雨']);
+    return { ws, dir, tail, cross, wave, hard, weather };
+  }
+  function cpuTilt(rng, w, cond) {
+    let t;
+    if (w <= 2) t = -0.5;
+    else if (w === 3) t = rng() < 0.6 ? -0.5 : 0;
+    else if (w === 4) t = rng() < 0.6 ? 0 : -0.5;
+    else if (w === 5) t = rng() < 0.5 ? 0.5 : 0;
+    else t = rng() < 0.25 ? 1.5 : (rng() < 0.6 ? 0.5 : 0);
+    if (cond.wave >= 6 && t > 0) t -= 0.5;
+    return t;
+  }
+  // 得意ターン：ターン100かつスタイル0〜25＝Vモンキー／ターン100かつスタイル75〜100＝ウイリー
+  //           ターン80以上かつ判断力40〜60かつスタイル26〜74＝全速ツケマイ
+  const techOf = ab => {
+    if (ab.turn >= 100 && ab.style <= 25 && ab.judge >= 50) return 'v';
+    if (ab.turn >= 100 && ab.style >= 75 && ab.prop >= 50) return 'w';
+    if (ab.turn >= 80 && ab.judge >= 30 && ab.judge <= 50 && ab.style >= 26 && ab.style <= 74) return 't';
+    return null;
+  };
+  const techOK = (ab, t) => !!t && techOf(ab) === t;
+  function assignTech(ab) { return techOf(ab); }
+  const courseZone = c => c <= 2 ? 'in' : c <= 4 ? 'center' : 'out';
+  const favMatch = b => b.ab.fav === courseZone(b.course);
+
+  function createRace(player, opts = {}) {
+    const seed = opts.seed ?? ((Math.random() * 4294967296) >>> 0);
+    const rng = mulberry32(seed);
+    const cond = opts.cond ? { ...opts.cond } : makeCond(rng);
+    const rolledW = 1 + Math.floor(rng() * 6);
+    const pW = opts.lineup ? (opts.lineup.findIndex(x => x.isPlayer) + 1 || 0) : (opts.playerWaku ?? rolledW);
+    const total = player.total ?? TOTAL;
+    const used = new Set([player.name]);
+    const boats = [];
+    for (let w = 1; w <= 6; w++) {
+      const isP = w === pW;
+      if (opts.lineup) {
+        const L = opts.lineup[w - 1], ab = { ...L.ab }, eff = {};
+        ab.tech = techOf(ab);
+        const propDir = isP ? (opts.propDir || 'bal') : pick(rng, PROP_DIRS);
+        const adj = propAdj(rng, ab, propDir);
+        for (const k of ['burst', 'start', 'power']) eff[k] = clamp(L.motor[k] + adj[k], 0, 100);
+        boats.push({ waku: w, course: w, isPlayer: isP, name: L.name, rid: L.id, ab, motorNo: L.motorNo, motor: { ...L.motor }, adj, eff, propDir,
+          tilt: isP ? (opts.playerTilt ?? 0) : cpuTilt(rng, w, cond) });
+        continue;
+      }
+      const base = isP ? { start: player.ab.start, turn: player.ab.turn, judge: player.ab.judge, stam: player.ab.stam ?? 40, prop: player.ab.prop } : randomAb(rng, total);
+      const ab = { ...base, style: isP ? player.style : Math.round(rng() * 100), fav: isP ? player.fav : pick(rng, ['in', 'center', 'out']) };
+      ab.tech = techOf(ab);
+      const motor = {}, eff = {};
+      for (const k of ['burst', 'start', 'power']) motor[k] = clamp(Math.round(50 + gauss(rng) * 18), 5, 95);
+      const propDir = isP ? (opts.propDir || 'bal') : pick(rng, PROP_DIRS);
+      const adj = propAdj(rng, ab, propDir);
+      for (const k of ['burst', 'start', 'power']) eff[k] = clamp(motor[k] + adj[k], 0, 100);
+      boats.push({
+        waku: w, course: w, isPlayer: isP, name: isP ? player.name : randomName(rng, used), ab,
+        motorNo: 11 + Math.floor(rng() * 68), motor, adj, eff, propDir,
+        tilt: isP ? (opts.playerTilt ?? 0) : cpuTilt(rng, w, cond),
+      });
+    }
+    return { seed, rng, cond, boats, player: boats[pW - 1] || null, auto: !!opts.auto };
+  }
+
+  // ---- 派生性能 ----
+  function derive(R, b) {
+    const c = R.cond, t = b.tilt + 0.5, turn = b.ab.turn / 100, e = { burst: b.eff.burst / 100, start: b.eff.start / 100, power: b.eff.power / 100 };
+    let g = 0.955 + 0.07 * turn;   // ターン0→100で握り±3.5%（以前は±7%）
+    g *= 1 - 0.02 * t;
+    g *= 1 - c.wave * 0.011 * (1 + 0.22 * Math.max(0, b.tilt));
+    g *= 1 - (c.hard / 100) * 0.08 * (1 - turn);
+    g *= 1 - c.cross * 0.004;
+    if (favMatch(b)) g *= 1.03;
+    b.grip = g;
+    b.vTop0 = 20.8 + 2.4 * e.power + 0.75 * t - c.wave * 0.04 * (1 + 0.3 * Math.max(0, b.tilt));
+    b.acc = 6.2 + 3.2 * e.burst - 0.45 * t;
+    b.e = e;
+    b.styleMult = 1 + 0.02 * b.ab.style / 100;   // 強気：旋回速度最大+2%（その分大回り）
+  }
+  function vTopAt(R, b, str) { return b.vTop0 + (str === 'home' ? R.cond.tail * 0.12 : str === 'back' ? -R.cond.tail * 0.12 : 0); }
+  function dashAcc(R, b, noise) {
+    let a = b.acc + 0.8 * b.e.start; const c = R.cond;
+    if (c.tail < 0 && b.slow) a *= 1 + c.tail * 0.012;
+    if (c.tail > 0 && !b.slow) a *= 1 - c.tail * 0.008;
+    return noise ? a * b.startNoise : a;
+  }
+  function expectedDash(R, b, dist, f = 1) {
+    let v = 0, x = 0, t = 0; const dt = 1 / 120, a = dashAcc(R, b, false) * f, vt = vTopAt(R, b, 'home');
+    while (x < dist && t < 30) { v += a * (1 - v / vt) * dt; x += v * dt; t += dt; }
+    return t;
+  }
+  function vTurn(b, d, p, wk) { return 4.26 * Math.pow(d, 0.45) * b.grip * b.styleMult * (p ? p.sf * p.tapMult : 1) * (1 - 0.15 * wk) * (b.stam < 20 && !b.iron ? 0.97 : 1) * (b.iron ? 1.03 : 1) * (d < 7 ? 1 - 0.03 * Math.min(1, (7 - d) / 2) : 1); }  // 半径7m未満は握りすぎで最大−3%  // 鉄人：体で踏ん張りターンの減速が少ない
+  function windTurnFactor(R, k) { const t = R.cond.tail; return k % 2 === 0 ? Math.max(0, t) * 0.045 : Math.max(0, -t) * 0.045; }
+
+  // ---- 進入（前付け・隊形） ----
+  function decideEntry(R) {
+    const rng = R.rng, c = R.cond;
+    let order = R.boats.slice().sort((a, b) => a.waku - b.waku);
+    const movers = [];
+    const PE = R.playerEntry || { mae: 0, form: 'auto' };
+    for (const b of order) {
+      b.course = b.waku; b.mover = false;
+      if (b.isPlayer) { if (PE.mae && PE.mae < b.waku) { b.maeTarget = PE.mae; movers.push(b); } continue; }
+      if (b.waku < 3) continue;
+      const st = b.ab.style / 100;
+      const p = b.ab.fav === 'in' ? 0.10 + 0.25 * st : (b.ab.fav === 'center' && b.waku >= 5 ? 0.06 + 0.12 * st : 0);
+      if (rng() < p) movers.push(b);
+    }
+    movers.sort((a, b) => b.ab.style - a.ab.style);
+    const moved = [];
+    for (const m of movers) {
+      let target = m.isPlayer ? m.maeTarget : m.ab.fav === 'in' ? 2 : 3;
+      if (!m.isPlayer && m.ab.fav === 'in' && m.ab.style >= 85 && rng() < 0.12) target = 1;
+      const idx = order.indexOf(m);
+      if (target - 1 >= idx) continue;
+      // 内の艇が抵抗すれば1つ外で止まる
+      const def = order[target - 1];
+      if (def && (def.ab.style >= 70 || def.waku === 1) && rng() < 0.6 - 0.3 * m.ab.style / 100) target++;
+      if (target - 1 >= idx) continue;
+      order.splice(idx, 1); order.splice(target - 1, 0, m);
+      moved.push(m); m.mover = true;
+    }
+    order.forEach((b, i) => { b.course = i + 1; });
+    // 隊形（スロー艇の数）
+    let nSlow = 3;
+    const r = rng();
+    if (c.tail <= -4) nSlow = r < 0.4 ? 2 : r < 0.45 ? 4 : 3;
+    else if (c.tail >= 3) nSlow = r < 0.35 ? 4 : r < 0.4 ? 2 : 3;
+    else nSlow = r < 0.1 ? 4 : r < 0.2 ? 2 : 3;
+    if (moved.length && nSlow === 2 && rng() < 0.5) nSlow = 3;
+    // あなたのスロー／ダッシュ選択
+    const P = order.find(b => b.isPlayer);
+    if (P && PE.form === 'dash' && P.course <= nSlow && P.course >= 2) nSlow = P.course - 1;
+    if (P && PE.form === 'slow' && P.course > nSlow) nSlow = Math.min(5, P.course);
+    // カドを取りに行く：スロー勢なら引いてダッシュの最内に、外のダッシュ勢ならカド位置へ動く
+    let kado = null;
+    if (P && PE.form === 'kado') {
+      if (P.course <= 2) kado = 'no1';
+      else if (P.course <= nSlow) { nSlow = P.course - 1; kado = 'hiki'; P.mover = true; }
+      else if (P.course === nSlow + 1) kado = 'already';
+      else {
+        const idx = order.indexOf(P), def = order[nSlow];
+        const resist = (def.ab.style >= 70 || def.ab.fav !== 'out') && rng() < 0.6 - 0.3 * P.ab.style / 100;
+        if (resist) kado = 'fail';
+        else { order.splice(idx, 1); order.splice(nSlow, 0, P); P.mover = true; kado = 'moved'; }
+        order.forEach((b, i) => { b.course = i + 1; });
+      }
+    }
+    // 深さ：内に入った艇・スロー艇の多さで、スロー勢の助走が短くなる
+    const crowd = moved.filter(m => m.course <= nSlow).length + Math.max(0, nSlow - 3);
+    const deep = crowd > 0 ? 1 : 0;
+    const slowRun = [62, 67, 73, 79, 85].map((x, i) => x - crowd * (4 - i * 0.8));
+    const dashStart = nSlow === 4 ? 112 : nSlow === 2 ? 100 : 106, dashGap = nSlow === 2 ? 11 : 14;
+    for (const b of order) {
+      b.slow = b.course <= nSlow;
+      b.runup = b.slow ? slowRun[b.course - 1] : dashStart + (b.course - nSlow - 1) * dashGap - (b.mover ? 14 : 0);
+      b.deep = deep && b.slow; b.crowd = b.slow ? crowd : 0;
+      if (!b.isPlayer && b.course !== b.waku) b.tilt = cpuTilt(rng, b.course, c);
+    }
+    R.entry = { kado, order: order.map(b => b.waku), nSlow, moved: moved.map(b => b.waku), deep: !!deep, crowd };
+  }
+
+  // ---- スタート準備 ----
+  function startRace(R) {
+    R.time = -13; R.events = []; R.finCount = 0; R.stCount = 0; R.done = false; R.prompt = null; R.guardPrompt = null;
+    R.cd = {}; R.wrecks = []; R.wakes = []; R.wakeT = 0; R.exitAnn = {}; R.after1T = null; R.leaderAt = {}; R.over = false;
+    decideEntry(R);
+    const E = R.entry;
+    ev(R, `進入 ${E.order.slice(0, E.nSlow).join('')}／${E.order.slice(E.nSlow).join('')}（${E.nSlow}対${6 - E.nSlow}）` + (E.moved.length ? `　${E.moved.join('・')}号艇が前付け` : '　枠なり') + (E.crowd >= 2 ? '　インは深い' : ''), E.moved.length ? 'warn' : 'info');
+    const PE = R.playerEntry;
+    const KM = { no1: `${R.player.course}コースからはカドに引けない`, hiki: `引いてカドを取った（${R.player.course}カド）`, already: `${R.player.course}カドから`, moved: `動いてカドを取った（${R.player.course}カド）`, fail: `カドを取りに行ったが締められた…${R.player.course}コース` };
+    if (E.kado && !R.auto) ev(R, KM[E.kado], E.kado === 'fail' || E.kado === 'no1' ? 'warn' : 'good');
+    if (PE && PE.mae && !R.auto && R.player.waku > PE.mae) {
+      if (!E.moved.includes(R.player.waku)) ev(R, `前付け失敗…${R.player.course}コースに収まった`, 'warn');
+      else ev(R, `前付け${R.player.course === PE.mae ? '成功' : 'は一部成功'}：${R.player.course}コース`, 'good');
+    }
+    for (const b of R.boats) {
+      derive(R, b);
+      const c = b.course;
+      b.lane0 = 9 + (c - 1) * 6; b.d = b.lane0; b.dPrev = b.d;
+      b.s = -b.runup; b.s0 = b.s;
+      b.v = 0; b.phase = 'wait'; b.status = 'race'; b.crossed = false; b.st = null; b.flag = null;
+      b.plans = {}; b.prompted = {}; b.wake = 0; b.wakeCd = {}; b.wTimer = 0; b.lastTurnK = null; b.rocket = false; b.rocketBoost = 0; b.pushRem = 0; b.latV = 0; b.guard = null; b.guardCd = 0; b.stamMax = b.ab.stam ?? 60; b.stam = b.stamMax; b.iron = b.stamMax >= 100; b.laneT = b.d; b.laneTimer = 0; b.place = null;
+      b.startNoise = 1 + gauss(R.rng) * 0.008 * (1.2 - b.e.start);
+      b.tExp = expectedDash(R, b, -b.s);
+      const fav = (favMatch(b) ? 0.012 : 0) - 0.006 * b.crowd - (b.mover ? 0.02 : 0);
+      if (b.isPlayer && !R.auto) {
+        // 黄色の目安：目安でST .08、黄色の範囲（目安−0.05〜+0.30秒）ならフライングしない。
+        // スタート能力が低い・インが深い・前付けした場合は、目安が遅い側にだけずれる（＝STが遅くなる）
+        b.guideTap = 0.08 - b.tExp + Math.abs(gauss(R.rng)) * (0.18 * (1 - b.ab.start / 100) + 0.03 * b.crowd + (b.mover ? 0.04 : 0));
+        b.startNoise = 1 + gauss(R.rng) * 0.002;   // あなたの艇は加速のぶれを小さくして、黄色の中の安全を保証
+      } else {
+        const mean = 0.19 - 0.10 * b.ab.start / 100 - fav, sd = 0.05 - 0.028 * b.ab.start / 100 + 0.01 * b.crowd;
+        b.targetST = b.ab.start >= 100 ? 0.01 + R.rng() * 0.04 : mean + gauss(R.rng) * sd;
+        if (b.ab.start >= 100) { b.startNoise = 1; b.rocket = true; }
+        b.tapTime = b.targetST - b.tExp;
+        b.guideTap = b.tapTime;
+      }
+    }
+    return R;
+  }
+  function ev(R, msg, kind = 'info') { R.events.push({ t: R.time, msg, kind }); }
+
+  // ---- 戦法 ----
+  function racing(R) { return R.boats.filter(o => o.status === 'race' && o.crossed); }
+  function analyze(R, b) {
+    const near = racing(R).filter(o => o !== b && o.s - b.s > -12 && o.s - b.s < 30);
+    const inner = near.filter(o => o.d < b.d - 1);
+    const aheadAny = near.some(o => o.s - b.s > 4);
+    return { near, inner, aheadAny };
+  }
+  function bestTactic(R, b) {
+    const { inner, near } = analyze(R, b);
+    if (!inner.length) {
+      // 凹んだイン：外艇に2m以上前へ出られたら差しに切替（判断力が低いと先マイのまま突っ込む）
+      const dented = near.some(o => o.s - b.s > 5 && o.d < b.d + 20);
+      if (!dented) return 'nige';
+      return R.rng() < 0.3 + 0.7 * b.ab.judge / 100 ? 'sashi' : 'nige';
+    }
+    // 内の艇がみな5m以上前にいる（離れて追走している）なら、自分のラインで回る
+    if (inner.every(o => relOf(b, o) > 5)) return 'nige';
+    const lead = Math.min(...inner.map(o => b.s - o.s));
+    const innerMinD = Math.min(...inner.map(o => o.d));
+    const adj = inner.reduce((a, o) => (b.d - o.d) < (b.d - a.d) ? o : a);
+    if (lead >= 3) return (b.ab.style >= 65 && b.d - adj.d < 9 && Math.abs(adj.s - b.s) < 4) ? 'dump' : 'makuri';
+    if (lead >= 1.5) return (b.ab.style >= 65 && b.d - adj.d < 9) ? 'dump' : 'makuri';
+    // 外から並んでいる（3m以内の遅れ）なら全速で外から攻める。はっきり遅れていれば内艇の間（まくり差し）を狙う
+    if (b.d - innerMinD > 10) return lead >= -3 ? 'makuri' : 'makurizashi';
+    return 'sashi';
+  }
+  // その場の状況で選べる戦法
+  //  先マイ：内に並ぶ／前にいる艇がない（最内、または内の艇より4m以上前）
+  //  まくり・まくり差し：内に並ぶ／前の艇がいて、12m以内に届く
+  //  差し：前（2m以上先）に艇がいる
+  //  ダンプ：すぐ内に当てられる艇がいる（前後8m・横12m以内）
+  function availTactics(R, b) {
+    const { near, inner } = analyze(R, b);
+    const ahead = near.filter(o => o.s - b.s > 2);
+    const innerAhead = inner.filter(o => o.s - b.s > -4);
+    const reach = innerAhead.length && Math.max(...innerAhead.map(o => o.s - b.s)) < 12;
+    const adj = inner.some(o => Math.abs(o.s - b.s) < 8 && b.d - o.d < 12);
+    const a = [];
+    const trailing = innerAhead.length && innerAhead.every(o => relOf(b, o) > 5);   // 内の艇がみな5m以上前：追走
+    if (!innerAhead.length || trailing) a.push('nige');
+    if (reach) a.push('makuri', 'makurizashi');
+    if (ahead.length) a.push('sashi');
+    if (adj) a.push('dump');
+    if (!a.length) a.push(ahead.length || innerAhead.length ? 'sashi' : 'nige');
+    return TAC_KEYS.filter(t => a.includes(t));
+  }
+  function isTrailing(R, b) {
+    const { inner } = analyze(R, b);
+    const innerAhead = inner.filter(o => o.s - b.s > -4);
+    return innerAhead.length > 0 && innerAhead.every(o => relOf(b, o) > 5);
+  }
+  function fitTactic(tac, avail) { return avail.includes(tac) ? tac : avail[0]; }
+  function altTactic(R, b, not, avail = availTactics(R, b)) {
+    const opts = avail.filter(t => t !== not && (t !== 'dump' || b.ab.style >= 50));
+    return opts.length ? pick(R.rng, opts) : fitTactic(not, avail);
+  }
+  // 得意ターンが展開に合うか
+  //  ツケマイ：まくり系で、すぐ内（前後8m）に付ける艇がいる／Vモンキー：差し以外／ウイリー：前に引き波を出す艇がいる
+  function techUsable(R, b, tech, p) {
+    if (!p) return false;
+    const others = racing(R).filter(o => o !== b);
+    if (tech === 't') return (p.tac === 'makuri' || p.tac === 'makurizashi' || p.tac === 'dump') && others.some(o => o.d < b.d && Math.abs(o.s - b.s) < 8);
+    if (tech === 'v') return p.tac !== 'sashi';
+    if (tech === 'w') return others.some(o => { const r = relOf(b, o); return r > 2 && r < 60; });   // 前の艇の引き波（約3秒残る）を越えていく
+    return false;
+  }
+  function refreshPlan(R, b, p, force) {
+    if (p.entered) return;
+    if (!force && R.time < p.refreshT) return;
+    p.refreshT = R.time + 0.25;
+    const { inner } = analyze(R, b);
+    const innerMinD = inner.length ? Math.min(...inner.map(o => o.d)) : 6;
+    const nearestIn = inner.slice().sort((a, c) => (b.d - a.d) - (b.d - c.d))[0];
+    const turn = b.ab.turn / 100;
+    switch (p.tac) {
+      case 'nige': {
+        // 内の艇が凹んで後ろ（4〜40m）にいるなら、その前に入ってインを締め、先に小さく回る
+        const dented = racing(R).filter(o => o !== b && o.d < b.d - 1 && b.s - o.s > 4 && b.s - o.s < 40);
+        if (dented.length) {
+          const line = Math.max(D_MIN + 1.5, Math.min(...dented.map(o => o.d)));
+          Object.assign(p, { dApp: Math.min(line, b.d), dTurn: 6.5 + 1.5 * (1 - turn), sf: 1.05, brakeExtra: 0, shime: true });
+        } else Object.assign(p, { dApp: clamp(b.d, 8, 12), dTurn: 7.5 + 2 * (1 - turn), sf: 1.05, brakeExtra: 0, shime: false });
+        break;
+      }
+      case 'makuri': {
+        const leadIn = inner.length ? Math.min(...inner.map(o => b.s - o.s)) : 99;
+        if (inner.length && leadIn >= 7) {
+          // 絞りまくり：内艇の真ん前（引き波が直撃するライン）まで寄せる
+          const t = Math.max(innerMinD + 1.8, 7.5);
+          Object.assign(p, { dApp: Math.min(t, b.d), dTurn: t + 2.5, sf: 1.03, brakeExtra: -2, squeeze: true });
+        } else {
+          const t = Math.max(innerMinD + SEP + 0.2, 9);
+          Object.assign(p, { dApp: Math.min(t, b.d), dTurn: t + 3, sf: 1.03, brakeExtra: -2, squeeze: false });
+        }
+        break;
+      }
+      case 'dump': { const t = nearestIn ? nearestIn.d + 1 : innerMinD + 1; Object.assign(p, { dApp: Math.min(t, b.d), dTurn: t + 1, sf: 1.02, brakeExtra: -1 }); break; }
+      case 'sashi': Object.assign(p, { dApp: b.d, dTurn: 7, sf: 0.98, brakeExtra: 4 }); break;
+      case 'makurizashi': {
+        // 進入では外のラインを保ち（内へ寄せて団子に入らない）、内のまくり艇が前へ出て膨らむのを待つ
+        Object.assign(p, { dApp: b.d, dTurn: Math.max(8.5, innerMinD + SEP + 0.5), sf: 1.06, brakeExtra: 2 }); break;
+      }
+    }
+  }
+  function newPlan(R, b, tac) {
+    const p = { tac, tapRes: null, tapMult: 1, entered: false, refreshT: 0 };
+    refreshPlan(R, b, p, true);
+    return p;
+  }
+  function playerRec(R, b, avail) {
+    const best = fitTactic(bestTactic(R, b), avail);
+    return R.rng() < 0.35 + 0.65 * b.ab.judge / 100 ? best : altTactic(R, b, best, avail);
+  }
+  function ensurePlan(R, b, k, inTurn) {
+    if (b.plans[k]) return b.plans[k];
+    if (b.isPlayer && !R.auto) {
+      const info = segInfo(b.s);
+      if (!inTurn && info.dist > PROMPT_CLOSE && R.prompt && R.prompt.k === k) return null;
+      const tac = R.prompt && R.prompt.k === k ? R.prompt.rec : fitTactic(bestTactic(R, b), availTactics(R, b));
+      R.prompt = null;
+      ev(R, `時間切れ → ${TAC[tac]}`, 'warn');
+      return (b.plans[k] = newPlan(R, b, tac));
+    }
+    const avail = availTactics(R, b);
+    let tac = fitTactic(bestTactic(R, b), avail);
+    // 判断ミス：外から攻める側は起きやすく、最内・先頭の艇は起きにくい
+    const miss = avail.includes('makuri') ? 0.45 + 0.5 * b.ab.judge / 100 : 0.75 + 0.25 * b.ab.judge / 100;
+    if (R.rng() > miss) tac = altTactic(R, b, tac, avail);
+    return (b.plans[k] = newPlan(R, b, tac));
+  }
+  function choose(R, tac) {
+    if (!R.prompt) return;
+    const b = R.player, k = R.prompt.k;
+    if (R.prompt.avail && !R.prompt.avail.includes(tac)) return;
+    b.plans[k] = newPlan(R, b, tac);
+    R.prompt = null;
+  }
+  const TAP_C = 0.85;
+  function tapZone(b) { const hw = 0.05 + 0.10 * b.ab.turn / 100; return { c: TAP_C, hw, perfect: hw * 0.35 }; }
+  function gaugeState(R) {
+    const b = R.player; if (!b || b.status !== 'race' || !b.crossed || R.auto) return null;
+    const info = segInfo(b.s); if (info.turn || info.k >= 6 || info.dist > GAUGE) return null;
+    const p = b.plans[info.k]; if (!p || p.tapRes) return null;
+    return { k: info.k, p: 1 - info.dist / GAUGE, zone: tapZone(b) };
+  }
+  // Vモンキー：立ち上がって体重を前に掛け、全速のまま小さく回る。外すと大きく流れ、転覆の危険
+  const TAP_MULT = { perfect: 1.06, good: 1.0, bad: 0.92, vok: 1.07, vhalf: 0.99, vbad: 0.85, wok: 1.0, whalf: 0.98, wbad: 0.9, tok: 1.05, thalf: 1.0, tbad: 0.9 };
+  function applyTap(b, p, res) {
+    p.tapRes = res;
+    p.tapMult = TAP_MULT[res];
+    p.vmonkey = res[0] === 'v';
+    p.willie = res === 'wok' || res === 'whalf';
+  }
+  const canV = b => b.ab.tech === 'v' && techOK(b.ab, 'v');
+  const canW = b => b.ab.tech === 'w' && techOK(b.ab, 'w');
+  const canT = b => b.ab.tech === 't' && techOK(b.ab, 't');
+  const W_SHIFT = 0.5; // ウイリーは遅めに握る（緑帯の後ろ寄りが芯）
+  const T_SHIFT = -0.5; // ツケマイは早めに握る（緑帯の前寄りが芯）
+  function turnTap(R, v = false) {
+    const g = gaugeState(R); if (!g) return null;
+    if (v === 'w' && !canW(R.player)) v = false;
+    if (v === true && !canV(R.player)) v = false;
+    if (v === 't' && !canT(R.player)) v = false;
+    if (v && !stamOK(R.player, v === true ? 'v' : v)) v = false;
+    if (v && !techUsable(R, R.player, v === true ? 'v' : v, R.player.plans[g.k])) v = false;
+    const b = R.player, p = b.plans[g.k], off = Math.abs(g.p - g.zone.c);
+    const offW = Math.abs(g.p - (g.zone.c + g.zone.hw * W_SHIFT));
+    const offT = Math.abs(g.p - (g.zone.c + g.zone.hw * T_SHIFT));
+    const res = v === 't' ? (offT < g.zone.perfect ? 'tok' : offT < g.zone.hw * 0.8 ? 'thalf' : 'tbad') : v === 'w' ? (offW < g.zone.perfect ? 'wok' : offW < g.zone.hw * 0.8 ? 'whalf' : 'wbad') : v ? (off < g.zone.perfect ? 'vok' : off < g.zone.hw ? 'vhalf' : 'vbad')
+                  : (off < g.zone.perfect ? 'perfect' : off < g.zone.hw ? 'good' : 'bad');
+    applyTap(b, p, res);
+    p.tapBy = 'player'; p.tapEarly = g.p < g.zone.c;
+    return res;
+  }
+  function onTurnEntry(R, b, p, k) {
+    if (!p.tapRes && b.isPlayer && R.cruise) { applyTap(b, p, 'good'); p.tapBy = 'auto'; }   // 巡航：技は使わず、確実に回る
+    if (!p.tapRes) {
+      const r = R.rng(), t = b.ab.turn / 100;
+      const useV = (!b.isPlayer || R.auto) && canV(b) && stamOK(b, 'v') && techUsable(R, b, 'v', p) && R.rng() < 0.3 + 0.5 * b.ab.style / 100;
+      const behind = racing(R).some(o => o !== b && o.s - b.s > 2 && o.s - b.s < 30);
+      const useW = (!b.isPlayer || R.auto) && canW(b) && stamOK(b, 'w') && techUsable(R, b, 'w', p) && R.rng() < (R.cond.wave >= 6 ? 0.25 : 0.65);
+      const useT = (!b.isPlayer || R.auto) && canT(b) && stamOK(b, 't') && techUsable(R, b, 't', p) && R.rng() < 0.6;
+      if (useT) applyTap(b, p, r < 0.12 + 0.3 * t ? 'tok' : r < 0.85 ? 'thalf' : 'tbad');
+      else if (useW) applyTap(b, p, r < 0.12 + 0.3 * t ? 'wok' : r < 0.85 ? 'whalf' : 'wbad');
+      else if (useV) applyTap(b, p, r < 0.12 + 0.3 * t ? 'vok' : r < 0.75 + 0.1 * t ? 'vhalf' : 'vbad');
+      else applyTap(b, p, r < 0.12 + 0.3 * t ? 'perfect' : r < 0.88 + 0.08 * t ? 'good' : 'bad');
+      p.tapBy = 'auto';
+    }
+    { const t0 = p.tapRes[0], kind = (t0 === 'v' || t0 === 'w' || t0 === 't') ? t0 : 'n'; b.stam = Math.max(0, b.stam - COST[kind]); }
+    if (p.tapRes === 'bad') b.pushRem = (b.pushRem || 0) + 2.5;
+    if (p.tapRes === 'vok') p.apexAdj = (p.apexAdj || 0) - 1.5;
+    if (p.tapRes === 'vhalf') p.apexAdj = (p.apexAdj || 0) - 0.5;
+    if (p.tapRes === 'vbad') { b.pushRem = (b.pushRem || 0) + 5; b.v *= 0.92; }
+    if (p.tapRes === 'wbad') { b.v *= 0.88; b.pushRem = (b.pushRem || 0) + 1.5; }
+    if (p.tapRes === 'tok' || p.tapRes === 'thalf' || p.tapRes === 'tbad') {
+      // 全速ツケマイ：すぐ内の艇にぴったり付けて全速で回り、相手を締めつける
+      const inner = racing(R).filter(o => o !== b && o.d < b.d && Math.abs(o.s - b.s) < 8).sort((x, y) => y.d - x.d)[0];
+      if (p.tapRes === 'tok') {
+        if (inner) p.tsuke = { waku: inner.waku, gap: SEP + 0.3 }; else p.apexAdj = (p.apexAdj || 0) - 1;
+        if (inner) { inner.v *= 0.96; if (!b.isPlayer || R.auto) { if (R.rng() < 0.4) ev(R, `${b.waku}号艇 全速ツケマイで${inner.waku}号艇を締める`, 'info'); } else ev(R, `${inner.waku}号艇に付けて締めた`, 'good'); }
+      } else if (p.tapRes === 'thalf') {
+        if (inner) p.tsuke = { waku: inner.waku, gap: SEP + 1.5 };
+      } else if (p.tapRes === 'tbad') {
+        b.pushRem = (b.pushRem || 0) + 3;
+        if (inner && R.rng() < 0.5) contact(R, b, inner);
+      }
+    }
+    let risk = 0.00015 + (p.tapRes === 'bad' ? 0.0015 : 0) + (p.tapRes === 'vbad' ? 0.012 : p.vmonkey ? 0.001 : 0);
+    if (p.tapRes === 'tbad') risk += 0.004; else if (p.tapRes[0] === 't' && p.tapRes !== 'tbad') risk += 0.0005;
+    if (p.tapRes[0] === 'w') risk = (risk + (p.tapRes === 'wbad' ? 0.006 : 0.0008)) * (R.cond.wave >= 5 ? 3 : 1) * (1 + 0.3 * Math.max(0, b.tilt));
+    risk *= (0.5 + R.cond.wave / 6) * (0.6 + b.ab.style / 100) * (p.tac === 'makuri' || p.tac === 'dump' ? 1.5 : 1);
+    if (R.rng() < risk) capsize(R, b, `${turnLabel(k)}で`);
+    if (b.isPlayer && !R.auto) {
+      const msg = { perfect: 'ターン：完璧！ 全速で回った', good: 'ターン：まずまず', bad: 'ターン：握りが合わず流れた', vok: 'Vモンキー炸裂！ 全速で小さく回った', vhalf: 'Vモンキー：やや膨らんだ', vbad: 'Vモンキー失敗…大きく流れた', wok: 'ウイリー！ 引き波を越えて立ち上がる', whalf: 'ウイリー：まずまずの立ち上がり', wbad: 'ウイリー失敗…艇首が上がりすぎて失速', tok: '全速ツケマイ！ 内艇に付けて全速で回った', thalf: 'ツケマイ：少し離れた', tbad: 'ツケマイ失敗…握り遅れて流れた' }[p.tapRes];
+      ev(R, (p.tapBy === 'auto' ? '（自動）' : '') + msg, p.tapRes === 'bad' || p.tapRes === 'vbad' || p.tapRes === 'wbad' || p.tapRes === 'tbad' ? 'warn' : 'good');
+    } else if (p.tapRes === 'vok' && R.rng() < 0.4) ev(R, `${b.waku}号艇 Vモンキーで鋭く回る`, 'info');
+    else if (p.tapRes === 'wok' && R.rng() < 0.4) ev(R, `${b.waku}号艇 ウイリーで引き波を越える`, 'info');
+  }
+  function capsize(R, b, where) {
+    if (b.status !== 'race') return;
+    if (b.isPlayer && R.cruise && R.rng() < 0.85) return;   // 巡航中は安全運転：転覆の危険を大きく減らす
+    if (b.iron && R.rng() < 0.5) { if (b.isPlayer && !R.auto) ev(R, '鉄人の踏ん張りで転覆を免れた！', 'good'); return; }
+    b.status = 'cap'; b.flag = '転'; b.wreckS = ((b.s % LAP) + LAP) % LAP; R.wrecks.push(b);
+    ev(R, `${b.waku}号艇 ${where}転覆！`, 'bad');
+  }
+
+  // ---- 1ティック ----
+  // ターン中は s（基準半径20mでの弧の長さ）を、その半径での実際の距離に直す
+  function physDs(s1, s2, dAvg) { const ds = s2 - s1; return segInfo((s1 + s2) / 2).turn ? ds * dAvg / R_REF : ds; }
+  const relOf = (a, o) => physDs(a.s, o.s, (a.d + o.d) / 2);
+  // 前方の水面に残る引き波の強さを予測（到達時の経過時間で減衰させる）
+  function wakeAhead(R, b, d) {
+    let w = 0; const v = Math.max(8, b.v);
+    for (const p of R.wakes) {
+      if (p.src === b.waku) continue;
+      const ds = physDs(b.s, p.s, (d + p.d) / 2); if (ds < -2 || ds > 30) continue;
+      const age = R.time - p.t0 + Math.max(0, ds) / v; if (age >= WAKE_LIFE) continue;
+      const hw = 1.2 + age * 1.6, dd = Math.abs(p.d - d); if (dd > hw) continue;
+      w = Math.max(w, p.str * (1 - age / WAKE_LIFE) * (1 - 0.5 * dd / hw));
+    }
+    return w;
+  }
+  // ターン進入時の位置を基準に、戦法ごとの旋回ラインを決める
+  // ---- ターンの軌道：入口（進入位置）→ 頂点（空いていれば内へ切り込む）→ 出口（少し膨らむ） ----
+  // 頂点の深さは戦法・ターン能力・スタイルで決まり、内側に「並んでいる」艇がいればその外まで。
+  // 内側の艇が後ろ、または艇尾をくぐれるほど前にいれば、その内へ入っていける。
+  const smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+  function turnApex(R, b, p) {
+    const t = b.ab.turn / 100, e = p.entryD;
+    if (p.tac === 'dump') return p.dumpD;
+    const cut = p.tac === 'sashi' || p.tac === 'makurizashi';
+    let free = D_MIN + 1;
+    for (const o of racing(R)) {
+      if (o === b || o.d >= b.d - 1) continue;
+      const rel = relOf(b, o);
+      if (rel < -3 || rel > (cut ? 1.5 : 4.5)) continue;     // 後ろの艇・くぐれる艇は邪魔にならない
+      free = Math.max(free, o.d + SEP + 0.3);
+    }
+    if (p.tsuke) { const o = R.boats[p.tsuke.waku - 1]; if (o && o.status === 'race') free = Math.max(D_MIN, o.d + p.tsuke.gap); }
+    let raw, depth;
+    switch (p.tac) {
+      case 'nige': raw = p.shime ? Math.min(e, p.planD) : clamp(e - (1.5 + 2.5 * t), 7, e); depth = 1; break;   // 内へ締めて先に回る
+      case 'sashi': raw = 6.5; depth = 1; break;                                                         // 懐（最内）へ潜る
+      case 'makurizashi': {
+        // 狙うのは「先に回る最内の艇」と「外へ膨らむ艇」の間：前を行く内側の艇のうち最も内の艇のすぐ外
+        const ahead = racing(R).filter(o => o !== b && o.d < b.d - 1 && relOf(b, o) > 1.5 && relOf(b, o) < 25);
+        raw = ahead.length ? Math.min(...ahead.map(o => o.d)) + SEP + 0.3 : Math.max(7, p.planD - 2);
+        depth = 0.7 + 0.3 * t; break;
+      }
+      case 'makuri': raw = 7.5; depth = 0.45 + 0.4 * t; break;                                           // 全速で回り、出口でインを取る
+    }
+    raw = Math.max(raw, free);
+    let apex = e - (e - raw) * depth + (b.ab.style - 50) / 50 * 2 + (p.apexAdj || 0);
+    return clamp(apex, D_MIN, e + 3);
+  }
+  function lineAt(R, b, p, prog) {
+    if (p.tac === 'dump') return p.dumpD;
+    const apex = turnApex(R, b, p), reach = p.tac === 'makuri' ? 0.55 : p.tac === 'makurizashi' ? 0.45 : 0.4;
+    return p.entryD + (apex - p.entryD) * smooth(prog / reach) + 2 * smooth((prog - 0.72) / 0.28);
+  }
+  function setTurnLine(R, b, p) {
+    p.entryD = b.d; p.planD = p.dTurn;   // planD：進入前に決めた狙いの半径
+    if (p.tac === 'dump') p.dumpD = p.dTurn;
+    p.base = p.entryD; p.dTurn = p.entryD;
+  }
+  // 0.25秒ごとに、その時点の軌道（入口→頂点→出口）を目標にしつつ、引き波・他艇の航跡を避けて微修正
+  function evalTurnLine(R, b, p) {
+    const prog = segInfo(b.s).prog ?? 0;
+    p.base = lineAt(R, b, p, Math.min(1, prog + 0.08));   // 少し先の目標へ向かって舵を切る
+    if (p.tac === 'dump' || R.rng() > 0.4 + 0.6 * b.ab.judge / 100) { p.dTurn = p.base; return; }
+    const others = racing(R).filter(o => o !== b && o.s - b.s > -6 && o.s - b.s < 30);
+    let best = p.base, bestC = Infinity;
+    for (let d = Math.max(D_MIN, p.base - 4); d <= p.base + 4; d += 0.5) {
+      const cut = p.tac === 'sashi' || p.tac === 'makurizashi';   // 差し・まくり差しは引き波を割ってでも懐を突く
+      let c = (cut ? 1 : 3) * wakeAhead(R, b, d) + (cut ? 0.3 : 0.15) * Math.abs(d - p.base) + 0.03 * Math.abs(d - b.d) + 0.12 * Math.abs(d - p.dTurn);   // 直前の狙いから大きく変えない
+      for (const o of others) {
+        const rel = physDs(b.s, o.s, (d + o.d) / 2), dd = Math.abs(o.d - d);
+        if (rel > 0 && dd < 2.5) c += 0.8 * (1 - rel / 30);
+        if (Math.abs(rel) < OVL + 1 && dd < SEP + 0.5) c += 2;
+        if (Math.abs(rel) < OVL + 1 && (o.d - b.d) * (o.d - d) < 0) c += 2;   // 並んでいる艇をまたがない
+      }
+      if (c < bestC) { bestC = c; best = d; }
+    }
+    p.dTurn = best;
+  }
+  // ---- 守り：後ろから並ばれそうなとき、進路をふさぐ（締める）か、寄せて当てる（幅寄せ） ----
+  function threatOf(R, b) {
+    let best = null, bd = 99;
+    for (const o of racing(R)) {
+      if (o === b || segInfo(o.s).turn) continue;
+      const rel = o.s - b.s;                       // 負＝後ろ
+      if (rel > 2 || rel < -14 || Math.abs(o.d - b.d) > 14) continue;
+      if (rel < -OVL && o.v - b.v < 0.3) continue; // 後ろにいても詰めてきていない
+      if (-rel < bd) { bd = -rel; best = o; }
+    }
+    return best;
+  }
+  function startGuard(R, b, type, o) {
+    b.guard = { type, target: o.waku, until: R.time + 2.2 };
+    b.guardCd = R.time + 6;
+    const who = b.isPlayer && !R.auto ? 'あなた' : `${b.waku}号艇`;
+    if ((b.isPlayer || o.isPlayer) && !R.auto) ev(R, type === 'bump' ? `${who}が${o.waku}号艇に幅寄せ！` : `${who}が締めて${o.waku}号艇の進路をふさぐ`, b.isPlayer ? 'good' : 'warn');
+    else if (R.rng() < 0.25) ev(R, type === 'bump' ? `${b.waku}号艇が${o.waku}号艇に幅寄せ` : `${b.waku}号艇が締めて${o.waku}号艇をけん制`, 'info');
+  }
+  function guardLane(R, b) {
+    const g = b.guard, o = g && R.boats[g.target - 1];
+    if (!g || R.time > g.until || !o || o.status !== 'race' || segInfo(o.s).turn) { b.guard = null; return null; }
+    const rel = o.s - b.s;
+    if (g.type === 'block' && Math.abs(rel) < OVL) return o.d + (o.d > b.d ? -(SEP + 0.3) : SEP + 0.3); // 並ばれたら相手の内／外を締める
+    return o.d;   // 締め：相手の進路の真ん前で引き波を浴びせる／幅寄せ：相手に向かって寄せる
+  }
+  function playerGuard(R, type) {
+    const b = R.player, gp = R.guardPrompt;
+    if (!gp || b.guard || (b.guardCd ?? 0) > R.time) return false;
+    const o = R.boats[gp.target - 1];
+    if (!o || o.status !== 'race') return false;
+    startGuard(R, b, type, o); R.guardPrompt = null;
+    return true;
+  }
+  function chooseLane(R, b) {
+    if ((!b.isPlayer || R.auto) && !(b.isPlayer && R.cruise)) {   // 巡航中は締め・幅寄せをしない
+      if (!b.guard && (b.guardCd ?? 0) < R.time) {
+        const o = threatOf(R, b);
+        if (o && R.rng() < 0.08 + 0.22 * b.ab.judge / 100) {
+          const side = Math.abs(o.s - b.s) < OVL + 1;
+          startGuard(R, b, side && R.rng() < 0.8 * b.ab.style / 100 ? 'bump' : 'block', o);
+        } else if (o) b.guardCd = R.time + 2.5;
+      }
+    }
+    if (b.guard) return;
+    // 判断力が低いほど、航跡を読み直す頻度が落ちる
+    if (R.rng() > 0.45 + 0.55 * b.ab.judge / 100) return;
+    const others = racing(R).filter(o => o !== b && o.s - b.s > -6 && o.s - b.s < 35);
+    let best = b.laneT, bestC = Infinity;
+    for (let d = 8; d <= 40; d += 1.5) {
+      let c = 3 * wakeAhead(R, b, d) + 0.035 * Math.abs(d - b.d) + 0.012 * Math.abs(d - 13);
+      for (const o of others) {
+        const rel = o.s - b.s, dd = Math.abs(o.d - d);
+        if (rel > 0 && dd < 2.5) c += 0.8 * (1 - rel / 35);           // 真後ろ（航跡の芯）を嫌う
+        if (Math.abs(rel) < OVL + 1 && dd < SEP + 0.5) c += 2;       // 併走艇と重なる位置は不可
+        if (Math.abs(rel) < OVL + 2 && (o.d - b.d) * (o.d - d) < 0) c += 2; // 併走艇をまたいで横切るラインは不可
+      }
+      if (c < bestC) { bestC = c; best = d; }
+    }
+    b.laneT = best;
+  }
+  function advance(b, dt) {
+    const info = segInfo(b.s);
+    b.s += b.v * dt * (info.turn ? R_REF / b.d : 1);
+  }
+  function raceMove(R, b, dt) {
+    const c = R.cond, info = segInfo(b.s);
+    const lp = b.lastTurnK != null ? b.plans[b.lastTurnK] : null;
+    if (lp && lp.willie && !info.turn && !lp.exitDone) { lp.exitDone = true; b.wTimer = lp.tapRes === 'wok' ? 2 : 1; }
+    if (b.wTimer > 0) b.wTimer -= dt;
+    if (b.rocketBoost > 0) b.rocketBoost -= dt;
+    if (!info.turn && b.crossed) b.stam = Math.min(b.stamMax, b.stam + 2 * dt);
+    const wImm = (info.turn && lp && lp.willie && lp === b.plans[info.k]) || b.wTimer > 0;
+    const wk = b.wake * (1 + c.wave / 10) * (wImm ? 0.3 : b.iron ? 0.6 : 1);
+    const vTop = vTopAt(R, b, info.straight || 'home') * (1 - 0.07 * wk) * (b.rocketBoost > 0 ? 1.03 : 1);
+    b.wkGrip = wk * (1 + 0.15 * Math.max(0, b.tilt));
+    let acc = b.acc, vCap = vTop, dT = b.d, lat = 3.2, decel = BRAKE;
+    if (b.isPlayer && !R.auto) R.guardPrompt = null;
+    // 弾かれ・流れは瞬間移動させず、約0.4秒かけて横に流す
+    if (b.pushRem) { const m = b.pushRem * Math.min(1, dt / 0.4); b.d = clamp(b.d + m, D_MIN, D_MAX); b.pushRem = Math.abs(b.pushRem - m) < 0.01 ? 0 : b.pushRem - m; }
+    if (b.isPlayer && !R.auto && b.crossed && info.k < 6 && !info.turn && info.dist <= PROMPT_OPEN && !b.plans[info.k] && !b.prompted[info.k]) {
+      b.prompted[info.k] = true;
+      const avail = availTactics(R, b);
+      R.prompt = { k: info.k, avail, rec: playerRec(R, b, avail), trail: isTrailing(R, b) };
+      if (b.ab.judge >= 100) {
+        // 先読み（判断力100）：近くの他艇に戦法を先に決めさせ、その狙いを見せる
+        R.prompt.foresee = racing(R).filter(o => o !== b && Math.abs(o.s - b.s) < 40)
+          .map(o => ({ waku: o.waku, tac: ensurePlan(R, o, info.k, false).tac })).sort((x, y) => x.waku - y.waku);
+      }
+    }
+    if (!b.crossed) { acc = dashAcc(R, b, true); dT = b.lane0; }
+    else if (info.turn) {
+      const p = ensurePlan(R, b, info.k, true);
+      if (!p.entered) {
+        p.entered = true; b.lastTurnK = info.k;
+        setTurnLine(R, b, p);
+        onTurnEntry(R, b, p, info.k); if (b.status !== 'race') return;
+      }
+      p.evalT = (p.evalT ?? 0) - dt;
+      if (p.evalT <= 0) { p.evalT = 0.15; evalTurnLine(R, b, p); }
+      dT = p.dTurn; lat = p.tac === 'sashi' || p.tac === 'makurizashi' ? 7 : 5.5;
+      vCap = vTurn(b, b.d, p, b.wkGrip);
+      const cutT = p.tac === 'sashi' || p.tac === 'makurizashi';
+      decel = BRAKE * (p.tac === 'sashi' ? 0.9 : p.tac === 'makurizashi' ? 0.65 : 0.45);   // 差し・まくり差しは握って減速しながら懐へ切り込む
+      if (b.v > vCap + 0.2) b.d += (b.v - vCap) * (cutT ? 0.6 : 1.4) * (b.d < 7 ? 1.5 : 1) * dt;  // ブイ際で速すぎると大きく膨らむ
+      b.laneT = b.d; b.laneTimer = 0;
+    } else {
+      let p = null;
+      if (info.k < 6 && info.dist <= APPROACH) p = ensurePlan(R, b, info.k, false);
+      if (p) {
+        refreshPlan(R, b, p, false);
+        dT = p.dApp;
+        const vE = vTurn(b, Math.max(p.dTurn, Math.min(b.d, p.dApp)), p, 0), wf = windTurnFactor(R, info.k);   // 実際に進入する半径に合わせて減速
+        const planBr = BRAKE * (1 - wf * (1 - b.ab.judge / 100));
+        decel = BRAKE * (1 - wf);
+        const x = Math.max(0, info.dist - p.brakeExtra);
+        vCap = Math.min(vTop, Math.sqrt(vE * vE + 2 * planBr * x));
+      } else if (b.s > TS[0]) {
+        b.laneTimer -= dt; if (b.laneTimer <= 0) { b.laneTimer = 0.3; chooseLane(R, b); }
+        dT = b.laneT;
+        if (b.guard) { const gl = guardLane(R, b); if (gl != null) { dT = gl; lat = b.guard.type === 'bump' ? 5.5 : 4.2; } }
+        if (b.isPlayer && !R.auto) {
+          const o = !b.guard && (b.guardCd ?? 0) < R.time ? threatOf(R, b) : null;
+          R.guardPrompt = o ? { target: o.waku, side: Math.abs(o.s - b.s) < OVL + 1 } : null;
+        }
+      } else dT = b.lane0;
+    }
+    if (b.crossed && R.wrecks.length) { const aw = avoidWreck(R, b, dT); if (aw !== dT) { dT = aw; lat = Math.max(lat, 5); } }
+    if (b.wTimer > 0 && !info.turn) acc *= 1.5;
+    if (b.v > vCap) b.v = Math.max(vCap, b.v - decel * dt);
+    else { b.v += acc * (1 - b.v / vTop) * dt; if (b.v > vCap) b.v = vCap; }
+    // 横移動は「ハンドルを切る」ように滑らかに：目標との差に比例した横速度へ、横加速度の上限つきで近づける
+    const want = clamp((dT - b.d) * 2.2, -lat, lat);
+    b.latV = (b.latV || 0) + clamp(want - (b.latV || 0), -14 * dt, 14 * dt);
+    let nd = b.d + b.latV * dt;
+    if (b.crossed) {
+      const p = info.turn || info.dist <= APPROACH ? b.plans[info.k] : null;
+      const dumping = p && p.tac === 'dump';
+      const bumpT = b.guard && b.guard.type === 'bump' ? b.guard.target : 0;
+      const cutting = info.turn && p && (p.tac === 'sashi' || p.tac === 'makurizashi');
+      for (const o of racing(R)) {
+        const rl = relOf(b, o);
+        if (o === b || o.waku === bumpT || Math.abs(rl) >= OVL) continue;
+        if (cutting && rl > 1.5) continue;   // 差し・まくり差し：少し前の艇の艇尾をくぐって内へ入れる
+        if (b.d >= o.d) { if (nd < o.d + SEP + 0.3 && !dumping) nd = Math.max(nd, Math.min(b.d, o.d + SEP + 0.3)); }
+        else if (nd > o.d - SEP - 0.3) nd = Math.min(nd, Math.max(b.d, o.d - SEP - 0.3));
+      }
+    }
+    const nd2 = clamp(nd, D_MIN, D_MAX);
+    if (Math.abs(nd2 - (b.d + b.latV * dt)) > 1e-6) b.latV = (nd2 - b.d) / dt;   // 他艇や下限で止められたら横速度もそこで止める
+    b.d = nd2;
+    advance(b, dt);
+  }
+  function contact(R, agg, vic) {
+    const c = R.cond, waveF = 0.5 + c.wave / 8;
+    // 鉄人：当てられても減速半分、当てた側なら相手の減速1.5倍＋外へ弾き出す、自分の減速半分
+    const loss = (b, l) => { b.v *= 1 - l * (b.iron ? 0.5 : 1); };
+    if (agg.guard && agg.guard.type === 'bump' && agg.guard.target === vic.waku) {
+      // 幅寄せ：横からぶつけて相手を減速させ、外／内へはじく
+      let l = 0.08 + 0.06 * agg.ab.style / 100; if (agg.iron) l *= 1.5;
+      loss(vic, l); loss(agg, 0.04);
+      vic.pushRem = (vic.pushRem || 0) + (vic.d > agg.d ? 1 : -1) * (agg.iron ? 2.5 : 1.5);
+      agg.guard = null;
+    } else if (agg.s - vic.s > 1) {
+      let l = 0.18 + 0.08 * agg.ab.style / 100;
+      if (agg.iron) { l = Math.min(0.5, l * 1.5); vic.pushRem = (vic.pushRem || 0) + 2; }
+      loss(vic, l); loss(agg, 0.05);
+    } else { loss(agg, 0.16); loss(vic, 0.07); }
+    const who = (agg.isPlayer || vic.isPlayer) && !R.auto;
+    if (who || R.rng() < 0.5) ev(R, `${agg.waku}号艇と${vic.waku}号艇が接触！`, 'warn');
+    if (R.rng() < (0.001 + 0.006 * agg.ab.style / 100) * waveF) capsize(R, agg, '接触で');
+    else if (R.rng() < 0.0008 * waveF * (1 + Math.max(0, vic.tilt) * 0.3)) capsize(R, vic, '接触で');
+  }
+  function interact(R, dt) {
+    const rb = R.boats.filter(b => b.status === 'race' && b.crossed);
+    // 引き波：各艇が落とした波点（寿命 WAKE_LIFE 秒・時間とともに横に広がり弱まる）
+    R.wakeT += dt;
+    if (R.wakeT >= 0.1) {
+      R.wakeT = 0;
+      for (const b of rb) if (b.v > 6) R.wakes.push({ src: b.waku, s: b.s, d: b.d, t0: R.time, str: Math.min(1.1, b.v / 20) });
+      R.wakes = R.wakes.filter(w => R.time - w.t0 < WAKE_LIFE);
+    }
+    const waveF = 1 + R.cond.wave / 10;
+    for (const a of rb) {
+      let w = 0;
+      const latV = Math.abs(a.d - a.dPrev) / dt;
+      for (const p of R.wakes) {
+        if (p.src === a.waku) continue;
+        const age = R.time - p.t0; if (age < 0.15) continue;
+        if (Math.abs(physDs(a.s, p.s, (a.d + p.d) / 2)) > 2.5) continue;
+        const hw = 1.2 + age * 1.6, dd = Math.abs(p.d - a.d);
+        if (dd > hw) continue;
+        const st = p.str * (1 - age / WAKE_LIFE) * (1 - 0.5 * dd / hw);
+        w = Math.max(w, st);
+        // 乗り越え（横切る）衝撃
+        if (latV > 1.2 && st > 0.25 && (a.wakeCd[p.src] ?? -99) < R.time - 0.7) {
+          a.wakeCd[p.src] = R.time;
+          const tiltF = 1 + 0.15 * Math.max(0, a.tilt);
+          const hit = st * waveF * tiltF * (a.iron ? 0.5 : 1);
+          const jump = R.rng() < 0.15 * hit * (0.6 + a.ab.style / 100);
+          a.v *= 1 - (jump ? 0.13 : 0.05) * hit;
+          a.pushRem = (a.pushRem || 0) + (p.d < a.d ? 1 : -1) * 0.6 * hit;
+          if (jump && (a.isPlayer && !R.auto)) ev(R, `${p.src}号艇の引き波で跳ねた！`, 'warn');
+          if (R.rng() < 0.00025 * hit * (R.cond.wave / 5 + 0.4) * (0.6 + a.ab.style / 100) * (jump ? 3 : 1)) { capsize(R, a, `${p.src}号艇の引き波で`); break; }
+        }
+      }
+      a.wake = Math.min(1, w);
+    }
+    for (let i = 0; i < rb.length; i++) for (let j = i + 1; j < rb.length; j++) {
+      const A = rb[i], B = rb[j];
+      if (A.status !== 'race' || B.status !== 'race') continue;
+      const rAB = relOf(A, B);
+      if (Math.abs(rAB) >= OVL) continue;
+      if (cutPass(A, B) || cutPass(B, A)) continue;   // 差し・まくり差しが前の艇の艇尾をくぐる
+      const aIn = A.dPrev < B.dPrev || (A.dPrev === B.dPrev && A.d < B.d);
+      const inn = aIn ? A : B, out = aIn ? B : A;
+      if (out.d - inn.d >= SEP) continue;
+      const innMove = inn.d - inn.dPrev, outMove = out.dPrev - out.d;
+      const closing = (innMove + outMove) / dt;
+      const need = SEP - (out.d - inn.d);
+      const outAgg = outMove >= innMove;
+      // 重なりは押し戻すが、一度に動かすのは0.3mまで（残りは横に流して解消し、カクッと飛ばない）
+      const now = Math.min(need, 0.3), rest = need - now;
+      if (outAgg) { out.d += now; if (rest > 0) out.pushRem = Math.max(out.pushRem || 0, rest); }
+      else { inn.d -= now; if (rest > 0) inn.pushRem = Math.min(inn.pushRem || 0, -rest); if (inn.d < D_MIN) { out.d += D_MIN - inn.d; inn.d = D_MIN; } }
+      const key = Math.min(A.waku, B.waku) * 10 + Math.max(A.waku, B.waku);
+      if (closing > 3.0 && Math.abs(rAB) < 3.5 && (R.cd[key] ?? -99) < R.time - 0.8) {   // 艇体が実際に重なる距離でだけ接触
+        R.cd[key] = R.time;
+        contact(R, outAgg ? out : inn, outAgg ? inn : out);
+      }
+    }
+  }
+  // ---- 転覆艇（事故艇）の回避 ----
+  // 転覆艇は水面に止まって残る。周回ごとに同じ場所を通るので、1周の中での位置で前方距離を測る
+  function wreckAhead(b, w) {
+    let rel = ((w.s - b.s) % LAP + LAP) % LAP; if (rel > LAP / 2) rel -= LAP;
+    return physDs(b.s, b.s + rel, (b.d + w.d) / 2);
+  }
+  // 前方（判断力が高いほど早く気づく：25〜50m）に転覆艇があり、進路が重なるなら、内か外の空いている側へよける
+  function avoidWreck(R, b, dT) {
+    const look = 25 + 25 * b.ab.judge / 100;
+    for (const w of R.wrecks) {
+      const rel = wreckAhead(b, w);
+      if (rel < -3 || rel > look) continue;
+      const near = Math.abs(w.d - dT) < 4.5 || Math.abs(w.d - b.d) < 4.5;
+      if (!near) continue;
+      const inSide = w.d - 4.5, outSide = w.d + 4.5;
+      const goIn = inSide >= D_MIN + 0.5 && (b.d < w.d || outSide > D_MAX - 2);
+      return goIn ? Math.min(dT, inSide) : Math.max(dT, outSide);
+    }
+    return dT;
+  }
+  // よけきれずに突っ込むと、大きく減速して弾かれ、まれに巻き込まれて転覆
+  function wreckHits(R) {
+    for (const b of racing(R)) for (const w of R.wrecks) {
+      const rel = wreckAhead(b, w);
+      if (Math.abs(rel) > 2.5 || Math.abs(w.d - b.d) > 2.2) continue;
+      const key = 'w' + b.waku + w.waku;
+      if ((R.cd[key] ?? -99) > R.time - 1.5) continue;
+      R.cd[key] = R.time;
+      b.v *= b.iron ? 0.85 : 0.7;
+      b.pushRem = (b.pushRem || 0) + (b.d >= w.d ? 2.5 : -2.5);
+      if ((b.isPlayer && !R.auto) || R.rng() < 0.6) ev(R, `${b.waku}号艇 転覆艇に接触！`, 'warn');
+      if (R.rng() < 0.04 * (0.6 + R.cond.wave / 8)) capsize(R, b, '転覆艇に巻き込まれて');
+    }
+  }
+  function cutPass(x, y) {
+    const inf = segInfo(x.s), p = inf.turn ? x.plans[inf.k] : null;
+    return !!p && (p.tac === 'sashi' || p.tac === 'makurizashi') && relOf(x, y) > 1.5;
+  }
+  function ranking(R) {
+    const st = { fin: 0, race: 1, out: 2, cap: 2 };
+    return R.boats.slice().sort((a, b) => (st[a.status] - st[b.status]) || (a.status === 'fin' ? a.place - b.place : b.s - a.s));
+  }
+  function announceStart(R) {
+    const ok = R.boats.filter(b => b.flag !== 'F' && b.flag !== 'L');
+    if (!ok.length) return;
+    const top = ok.reduce((a, b) => a.st < b.st ? a : b);
+    ev(R, `スタート！ トップスタートは${top.waku}号艇（ST ${fmtST(top.st)}）`, 'info');
+  }
+  function fmtST(st) { if (st == null) return '—'; if (st < 0) return 'F' + (-st).toFixed(2).replace(/^0/, ''); return st.toFixed(2).replace(/^0/, ''); }
+  function tick(R, dt) {
+    if (R.done) return;
+    R.time += dt;
+    for (const b of R.boats) {
+      b.dPrev = b.d;
+      if (b.phase === 'wait') {
+        const auto = !b.isPlayer || R.auto;
+        if (auto ? R.time >= b.tapTime : R.time >= b.guideTap + 1.8) {
+          b.phase = 'go'; b.tapAt = R.time;
+          if (!auto) ev(R, '起こし遅れ…自動で起こしました', 'warn');
+        }
+        continue;
+      }
+      if (b.status === 'cap') { b.v = Math.max(0, b.v - 14 * dt); advance(b, dt); continue; }
+      if (b.status === 'out') { b.d = Math.min(66, b.d + 3 * dt); b.v += (8 - b.v) * Math.min(1, dt * 0.8); advance(b, dt); continue; }
+      if (b.status === 'fin') { b.v = Math.max(0, b.v - 2.2 * dt); advance(b, dt); continue; }
+      raceMove(R, b, dt);
+    }
+    interact(R, dt);
+    if (R.wrecks.length) wreckHits(R);
+    for (const b of R.boats) {
+      if (b.phase !== 'go') continue;
+      if (!b.crossed && b.s >= 0) {
+        b.crossed = true; b.st = R.time - b.s / Math.max(1, b.v);
+        if (b.st > 0.10) b.v *= 1 - Math.min(0.06, (b.st - 0.10) * 0.25); // 起こしが遅れ加速が乗り切っていない
+        if (b.rocket && b.st >= 0) { b.v *= 1.04; b.rocketBoost = 3; } // ロケット：全速でライン通過、1マークまで伸びが続く
+        if (b.st < 0) { b.status = 'out'; b.flag = 'F'; ev(R, `${b.waku}号艇 フライング！（${fmtST(b.st)}）`, 'bad'); }
+        else if (b.st >= 1) { b.status = 'out'; b.flag = 'L'; ev(R, `${b.waku}号艇 出遅れ（ST ${b.st.toFixed(2)}）`, 'bad'); }
+        if (++R.stCount === 6) announceStart(R);
+      }
+      if (b.status === 'race' && b.s >= RACE_LEN) {
+        b.status = 'fin'; b.place = ++R.finCount; b.finTime = R.time;
+        if (b.place === 1) ev(R, `${b.waku}号艇 1着でゴール！`, 'good');
+      }
+    }
+    const rb = racing(R);
+    if (rb.length) {
+      const lead = rb.reduce((a, b) => a.s > b.s ? a : b);
+      for (let k = 0; k < 6; k++) {
+        if (!R.exitAnn[k] && lead.s >= TE[k] + 25) {
+          R.exitAnn[k] = true;
+          const ord = ranking(R).filter(b => b.status === 'race' || b.status === 'fin');
+          const L = ord[0]; if (!L) break;
+          const prev = R.leaderAt[k - 1];
+          R.leaderAt[k] = L.waku;
+          if (k === 0) {
+            R.after1T = ord.map(b => b.waku);
+            R.lead1T = { waku: L.waku, tac: L.plans[0] ? L.plans[0].tac : 'nige' };
+            const tac = R.lead1T.tac;
+            const word = L.course === 1 && tac !== 'sashi' ? '逃げ態勢' : tac === 'makuri' || tac === 'dump' ? 'まくった！' : tac === 'sashi' ? '差した！' : tac === 'makurizashi' ? 'まくり差し！' : '先頭';
+            ev(R, `1周1マーク、${L.waku}号艇 ${word} 2番手${ord[1] ? ord[1].waku : '-'}号艇`, 'info');
+          } else if (prev && prev !== L.waku) ev(R, `${turnLabel(k)}、${L.waku}号艇が逆転で先頭！`, 'info');
+        }
+      }
+    }
+    if (R.time > 260) { for (const b of R.boats) if (b.status === 'race') { b.status = 'out'; b.flag = '欠'; } }
+    if (R.boats.every(b => b.status !== 'race')) { R.done = true; finalize(R); }
+  }
+  function step(R, dtTotal) {
+    const n = Math.max(1, Math.ceil(dtTotal * 120)), dt = dtTotal / n;
+    for (let i = 0; i < n && !R.done; i++) tick(R, dt);
+  }
+  // ロケットスタート（スタート100）：目安±0.30秒以内で起こせば、加速を自動で合わせてST .01〜.05で通過
+  const ROCKET_WIN = 0.30, GUIDE_EARLY = 0.05, GUIDE_LATE = 0.30;
+  function rocket(R, b, target) {
+    const D = target - R.time, dist = -b.s;
+    let lo = 0.8, hi = 1.35;
+    if (expectedDash(R, b, dist, hi) > D || expectedDash(R, b, dist, lo) < D) return false;
+    for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (expectedDash(R, b, dist, m) > D) lo = m; else hi = m; }
+    b.startNoise = (lo + hi) / 2; b.rocket = true;
+    return true;
+  }
+  function playerTap(R) {
+    const b = R.player;
+    if (b.phase !== 'wait') return false;
+    b.phase = 'go'; b.tapAt = R.time;
+    if (b.ab.start >= 100 && Math.abs(R.time - b.guideTap) <= ROCKET_WIN && rocket(R, b, 0.01 + R.rng() * 0.04)) ev(R, 'ロケットスタート！', 'good');
+    return true;
+  }
+  function finalize(R) {
+    const fin = R.boats.filter(b => b.status === 'fin').sort((a, b) => a.place - b.place);
+    const w = fin[0];
+    let kim = 'レース不成立';
+    if (w) {
+      const lead1T = R.after1T && R.after1T[0];
+      const lead2M = R.leaderAt[1];
+      const tac = w.plans[0] ? w.plans[0].tac : 'nige';
+      const innerOut = R.boats.some(o => o.course < w.course && o.status !== 'fin' && (o.flag === 'F' || o.flag === 'L'));
+      if (lead1T === w.waku) {
+        if (w.course === 1) kim = '逃げ';
+        else if (innerOut && tac === 'nige') kim = '恵まれ';
+        else kim = { makuri: 'まくり', dump: 'まくり', sashi: '差し', makurizashi: 'まくり差し', nige: 'まくり' }[tac];
+      } else if (lead2M === w.waku && (tac === 'sashi' || tac === 'makurizashi')) {
+        kim = tac === 'sashi' ? '差し' : 'まくり差し';
+      } else {
+        const L = R.boats.find(o => o.waku === lead1T);
+        kim = L && (L.status === 'cap' || L.status === 'out') ? '恵まれ' : '抜き';
+      }
+    }
+    R.kimarite = kim;
+    R.result = ranking(R);
+    R.trifecta = fin.length >= 3 ? fin.slice(0, 3).map(b => b.waku).join('-') : null;
+  }
+
+  return {
+    LAP, RACE_LEN, TS, TE, HALF, LINE_X, R_REF, TOTAL, TAC, TAC_KEYS, PROMPT_OPEN, PROMPT_CLOSE, GAUGE,
+    ROCKET_WIN, GUIDE_EARLY, GUIDE_LATE, playerGuard, availTactics, techUsable, PAIR, TRIO, COST, stamOK, applyProp, posAt, segInfo, turnLabel, canV, canW, canT, techOK, techOf, assignTech, W_SHIFT, T_SHIFT, makeCond, randomAb, randomName, gauss, createRace, startRace, step, playerTap, choose, turnTap, gaugeState, tapZone,
+    ranking, fmtST, WAKE_LIFE, decideEntry, derive, vTopAt, courseZone, favMatch, mulberry32,
+  };
+})();
+if (typeof module !== "undefined") module.exports = KY;
+</script><script>
+// ===== 波頭記念 UI =====
+(() => {
+const $ = s => document.querySelector(s);
+const BOAT = [null,
+  { bg: '#f4f4f1', fg: '#111' }, { bg: '#1c1c1c', fg: '#fff' }, { bg: '#d8262f', fg: '#fff' },
+  { bg: '#1e5bd0', fg: '#fff' }, { bg: '#f3cd1c', fg: '#111' }, { bg: '#1c9a4b', fg: '#fff' }];
+const STATS = [
+  ['start', 'スタート', '大時計の「起こし」の目安が正確になる（低いと目安がずれる）。100でロケットスタート：目安から±0.3秒以内で起こせば必ずST .01〜.05。'],
+  ['turn', 'ターン', '旋回の握り。ターン時のタイミング判定の緑帯が広くなる。80以上で全速ツケマイ、100でVモンキー／ウイリー（条件は得意ターン欄）。'],
+  ['judge', '判断力', '戦法選択の持ち時間（スロー）と「読み」の的中率。追い風で流れにくい。100で先読み：マークごとに他艇の狙う戦法が見える。'],
+  ['stam', 'スタミナ', '得意ターンの燃料（Vモンキー・ウイリー35、ツケマイ25、普通のターン5を消費。直線で毎秒2回復）。20未満は疲労で握り−3%。100で鉄人：疲労なし・当たりと引き波に強く・転覆半減、当てれば相手を大きく飛ばす。'],
+  ['prop', 'プロペラ調整力', 'モーターの瞬発力・スタート・パワーを底上げ。低いとマイナス調整も。100でペラ職人：全項目+15、さらに出足寄り／伸び寄りに8振れる。'],
+];
+const TACINFO = {
+  nige: ['先マイ', '内から先に回る'], makuri: ['まくり', '全速で内艇の前へ'], sashi: ['差し', '減速して内を突く'],
+  makurizashi: ['まくり差し', '外から懐へ切込む'], dump: ['ダンプ', '内艇に当てて沈める'],
+};
+const TOTAL = KY.TOTAL;
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+let cfg = store.get('hagashira.cfg') || { name: 'プレイヤー', ab: { start: 55, turn: 55, judge: 45, stam: 40, prop: 45 }, style: 40, fav: 'in' };
+let SC = null, R = null, raceNo = 1, lastTilt = 0, pEntry = { mae: 0, form: 'auto' }, propDir = 'bal';
+
+function show(id) { for (const s of ['#scr-setup', '#scr-card', '#scr-race', '#scr-series']) $(s).hidden = s !== id; window.scrollTo(0, 0); }
+const chip = (w, extra = '') => `<span class="wk" style="background:${BOAT[w].bg};color:${BOAT[w].fg}${extra}">${w}</span>`;
+
+// ---------- 能力設定 ----------
+const PAIRS = [['start', 'turn']];
+const SDESC = Object.fromEntries(STATS.map(([k, l, d]) => [k, [l, d]]));
+const PERK = { start: 'ロケットスタート', turn: '', judge: '先読み', stam: '鉄人', prop: 'ペラ職人' };
+function normCfg() {
+  for (const [a, b] of PAIRS) { let v = Math.round((cfg.ab[a] ?? 55) / 5) * 5; v = Math.max(10, Math.min(100, v)); cfg.ab[a] = v; cfg.ab[b] = KY.PAIR - v; }
+  const r5 = x => Math.max(10, Math.min(100, Math.round(x / 5) * 5));
+  let j = r5(cfg.ab.judge ?? 45), s = r5(cfg.ab.stam ?? 40);
+  if (cfg.ab.stam == null) { j = r5(j - 10); }           // 旧データ：判断力とプロペラから10ずつスタミナへ
+  fixTrio(j, s, 'judge');
+}
+// 判断力＋スタミナ＋プロペラ＝130（各10〜100）。動かした方を優先し、プロペラ→もう一方の順で合わせる
+function fixTrio(j, s, moved) {
+  const T = KY.TRIO;
+  let p = T - j - s;
+  if (p < 10 || p > 100) {
+    if (moved === 'judge') s = Math.max(10, Math.min(100, T - j - (p < 10 ? 10 : 100)));
+    else j = Math.max(10, Math.min(100, T - s - (p < 10 ? 10 : 100)));
+    p = T - j - s;
+  }
+  cfg.ab.judge = j; cfg.ab.stam = s; cfg.ab.prop = p;
+}
+function buildSetup() {
+  normCfg();
+  $('#pName').value = cfg.name;
+  $('#stats').innerHTML = PAIRS.map(([a, b]) => `<div class="pair">
+    <div class="pair-h"><div><span class="l">${SDESC[a][0]}</span><output id="o_${a}"></output><span class="perk" id="pk_${a}" hidden></span></div>
+      <div><span class="l">${SDESC[b][0]}</span><output id="o_${b}"></output><span class="perk" id="pk_${b}" hidden></span></div></div>
+    <input type="range" id="s_${a}" min="10" max="100" step="5" value="${cfg.ab[a]}" aria-label="${SDESC[a][0]}と${SDESC[b][0]}の配分">
+    <small><span>${SDESC[a][1]}</span><span>${SDESC[b][1]}</span></small></div>`).join('') + `<div class="pair trio">
+    <div class="pair-h">${['judge', 'stam', 'prop'].map(k => `<div><span class="l">${SDESC[k][0]}</span><output id="o_${k}"></output><span class="perk" id="pk_${k}" hidden></span></div>`).join('')}</div>
+    <div class="tribar" aria-hidden="true"><i id="tb_judge"></i><i id="tb_stam"></i><i id="tb_prop"></i></div>
+    <div class="trislider"><label for="s_judge">判断力</label><input type="range" id="s_judge" min="10" max="100" step="5"></div>
+    <div class="trislider"><label for="s_stam">スタミナ</label><input type="range" id="s_stam" min="10" max="100" step="5"></div>
+    <small class="tri"><span><b>判断力</b>　${SDESC.judge[1]}</span><span><b>スタミナ</b>　${SDESC.stam[1]}</span><span><b>プロペラ調整力</b>（残り）　${SDESC.prop[1]}</span></small></div>`;
+  for (const [a, b] of PAIRS) $('#s_' + a).addEventListener('input', e => { cfg.ab[a] = +e.target.value; cfg.ab[b] = KY.PAIR - cfg.ab[a]; refreshSetup(); });
+  $('#s_judge').addEventListener('input', e => { fixTrio(+e.target.value, cfg.ab.stam, 'judge'); refreshSetup(); });
+  $('#s_stam').addEventListener('input', e => { fixTrio(cfg.ab.judge, +e.target.value, 'stam'); refreshSetup(); });
+  $('#sStyle').value = cfg.style;
+  $('#sStyle').addEventListener('input', e => { cfg.style = +e.target.value; refreshSetup(); });
+  $('#favSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { cfg.fav = b.dataset.v; refreshSetup(); }));
+  $('#pName').addEventListener('input', e => { cfg.name = e.target.value.trim() || 'プレイヤー'; });
+  refreshSetup();
+}
+function refreshSetup() {
+  for (const [k] of STATS) {
+    $('#o_' + k).textContent = cfg.ab[k];
+    const pk = $('#pk_' + k), tq = k === 'turn' ? KY.techOf({ ...cfg.ab, style: cfg.style }) : null;
+    const label = k === 'turn' ? ({ v: 'Vモンキー', w: 'ウイリー', t: '全速ツケマイ' }[tq] || '') : PERK[k];
+    pk.hidden = !((k === 'turn' ? !!tq : cfg.ab[k] >= 100) && label); pk.textContent = label;
+  }
+  $('#s_judge').value = cfg.ab.judge; $('#s_stam').value = cfg.ab.stam;
+  for (const k of ['judge', 'stam', 'prop']) $('#tb_' + k).style.width = (cfg.ab[k] / KY.TRIO * 100) + '%';
+  $('#oStyle').textContent = cfg.style;
+  $('#favSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === cfg.fav));
+  const tq = KY.techOf({ ...cfg.ab, style: cfg.style }); cfg.tech = tq;
+  $('#techShow').innerHTML = tq ? `<span class="badge ${tq}">${{ v: 'Vモンキー', w: 'ウイリー', t: '全速ツケマイ' }[tq]}</span>` : '<span style="color:var(--muted);font-weight:700">なし（条件は下の説明）</span>';
+}
+$('#toCard').addEventListener('click', () => { store.set('hagashira.cfg', cfg); newRace(); });
+
+// ---------- 出走表 ----------
+const dirLbl = { calm: '無風', tail: '追い風', head: '向かい風', left: '左横風', right: '右横風' };
+const hardLbl = h => h < 34 ? '柔らかい' : h < 67 ? '普通' : '硬い';
+const favLbl = { in: 'イン', center: 'センター', out: 'アウト' };
+const styleLbl = s => s >= 75 ? '強引' : s >= 50 ? 'やや強引' : s >= 25 ? 'やや丁寧' : '丁寧';
+const tiltStr = t => (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t).toFixed(1);
+
+function newRace() {
+  SC = null;
+  R = KY.createRace({ name: cfg.name, ab: cfg.ab, style: cfg.style, fav: cfg.fav, tech: cfg.tech, total: TOTAL }, { playerTilt: lastTilt, propDir });
+  buildCard(); show('#scr-card');
+}
+function buildCard() {
+  const c = R.cond;
+  $('#raceSub').textContent = SC ? `${SC.label}　あなたは${R.player.waku}号艇` : `第${raceNo}レース　3周　あなたは${R.player.waku}号艇`;
+  $('#backSetup').hidden = !!SC; $('#reroll').hidden = !!SC;
+  $('#cond').innerHTML = [
+    ['天候', c.weather], ['風', c.ws ? `${dirLbl[c.dir]} ${c.ws}m` : '無風'], ['波高', `${c.wave}cm`], ['水面', hardLbl(c.hard)],
+  ].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('');
+  const mcell = (b, k) => { const a = b.adj[k]; return `<span class="mot">${b.eff[k]}<i class="${a > 0 ? 'up' : a < 0 ? 'dn' : ''}">${a > 0 ? '+' + a : a < 0 ? a : '±0'}</i></span>`; };
+  let h = `<tr><th>枠</th><th style="text-align:left">選手</th><th>ST</th><th>ターン</th><th>判断</th><th>体力</th><th>プロペラ</th><th>スタイル</th><th>得意</th><th>No.</th><th>瞬発力</th><th>スタート</th><th>パワー</th><th>チルト</th></tr>`;
+  for (const b of R.boats) {
+    h += `<tr class="${b.isPlayer ? 'me' : ''}"><td>${chip(b.waku)}</td><td class="nm">${esc(b.name)}${b.isPlayer ? '（あなた）' : ''}${b.ab.tech ? `<span class="badge ${b.ab.tech}">${{ v: 'V', w: 'ウイリー', t: 'ツケマイ' }[b.ab.tech]}</span>` : ''}</td>
+      <td class="n">${b.ab.start}</td><td class="n">${b.ab.turn}</td><td class="n">${b.ab.judge}</td><td class="n">${b.ab.stam ?? '—'}</td><td class="n">${b.ab.prop}</td>
+      <td>${styleLbl(b.ab.style)}</td><td>${favLbl[b.ab.fav]}${KY.favMatch(b) ? '◎' : ''}</td><td class="n">${b.motorNo}</td>
+      <td class="n">${mcell(b, 'burst')}</td><td class="n">${mcell(b, 'start')}</td><td class="n">${mcell(b, 'power')}</td>
+      <td class="n" id="tiltCell${b.waku}">${tiltStr(b.tilt)}</td></tr>`;
+  }
+  $('#cardTbl').innerHTML = h;
+  const mc = (b, k) => { const a = b.adj[k]; return `${b.eff[k]}<i class="${a > 0 ? 'up' : a < 0 ? 'dn' : ''}">${a > 0 ? '+' + a : a < 0 ? a : '±0'}</i>`; };
+  $('#cardList').innerHTML = R.boats.map(b => `<div class="bc ${b.isPlayer ? 'me' : ''}">
+    <div class="bc-h">${chip(b.waku)}<span class="nm">${esc(b.name)}${b.isPlayer ? '（あなた）' : ''}${b.ab.tech ? `<span class="badge ${b.ab.tech}">${{ v: 'V', w: 'ウイリー', t: 'ツケマイ' }[b.ab.tech]}</span>` : ''}</span><span class="tl"><small>チルト</small><span id="tiltCard${b.waku}">${tiltStr(b.tilt)}</span></span></div>
+    <div class="bc-g">
+      <div><span>スタート</span><b>${b.ab.start}</b></div><div><span>ターン</span><b>${b.ab.turn}</b></div><div><span>判断</span><b>${b.ab.judge}</b></div><div><span>プロペラ</span><b>${b.ab.prop}</b></div>
+      <div style="grid-column: span 2"><span>スタイル</span><b class="t">${styleLbl(b.ab.style)}</b></div><div><span>体力</span><b>${b.ab.stam ?? '—'}</b></div><div><span>得意</span><b class="t">${favLbl[b.ab.fav]}${KY.favMatch(b) ? '◎' : ''}</b></div>
+    </div>
+    <div class="bc-g bc-sep">
+      <div><span>モーター</span><b>${b.motorNo}</b></div><div><span>瞬発力</span><b>${mc(b, 'burst')}</b></div><div><span>スタート</span><b>${mc(b, 'start')}</b></div><div><span>パワー</span><b>${mc(b, 'power')}</b></div>
+    </div></div>`).join('');
+  const T = [-0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+  $('#tilts').innerHTML = T.map(t => `<button data-t="${t}">${tiltStr(t)}</button>`).join('');
+  $('#tilts').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => { R.player.tilt = +btn.dataset.t; lastTilt = R.player.tilt; refreshTilt(); }));
+  refreshTilt();
+  pEntry.mae = 0;
+  const w = R.player.waku;
+  $('#maeSeg').innerHTML = `<button data-v="0">枠なり</button>` + Array.from({ length: w - 1 }, (_, i) => `<button data-v="${i + 1}">${i + 1}コース狙い</button>`).join('');
+  $('#maeSeg').querySelectorAll('button').forEach(bt => bt.addEventListener('click', () => { pEntry.mae = +bt.dataset.v; refreshEntry(); }));
+  $('#formSeg').querySelectorAll('button').forEach(bt => bt.onclick = () => { pEntry.form = bt.dataset.v; refreshEntry(); });
+  refreshEntry();
+  $('#propBox').hidden = R.player.ab.prop < 100;
+  $('#propSeg').querySelectorAll('button').forEach(bt => {
+    bt.setAttribute('aria-pressed', bt.dataset.v === (R.player.propDir || 'bal'));
+    bt.onclick = () => { propDir = bt.dataset.v; KY.applyProp(R.player, propDir); const keep = { ...pEntry }; buildCard(); Object.assign(pEntry, keep); refreshEntry(); };
+  });
+}
+function refreshEntry() {
+  $('#maeSeg').querySelectorAll('button').forEach(bt => bt.setAttribute('aria-pressed', +bt.dataset.v === pEntry.mae));
+  $('#formSeg').querySelectorAll('button').forEach(bt => bt.setAttribute('aria-pressed', bt.dataset.v === pEntry.form));
+}
+function refreshTilt() {
+  const p = R.player;
+  $('#tilts').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.t === p.tilt));
+  $('#tiltCell' + p.waku).textContent = tiltStr(p.tilt);
+  $('#tiltCard' + p.waku).textContent = tiltStr(p.tilt);
+  KY.derive(R, p);
+  const nobi = (p.vTop0 - 19.5) / 5 * 100, deashi = (p.acc - 4.4) / 5 * 100, grip = (p.grip - 0.7) / 0.4 * 100;
+  $('#meters').innerHTML = [['伸び', nobi], ['出足', deashi], ['ターン', grip]].map(([l, v]) => { v = Math.max(0, Math.min(100, v)); return `<div class="meter"><span>${l}</span><div class="bar"><i style="width:${v}%"></i></div><span class="num">${Math.round(v)}</span></div>`; }).join('');
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+$('#backSetup').addEventListener('click', () => { buildSetup(); show('#scr-setup'); });
+$('#reroll').addEventListener('click', () => { raceNo++; newRace(); });
+$('#go').addEventListener('click', startRace);
+
+// ---------- レース ----------
+const cv = $('#cv'), ctx = cv.getContext('2d'), mini = $('#mini'), mctx = mini.getContext('2d'), clock = $('#clock'), cctx = clock.getContext('2d');
+let running = false, lastTs = 0, cam = { x: 0, y: 0 }, trails = {}, trailT = 0, evSeen = 0, shownGauge = false, resultTimer = null, startUIHideAt = null;
+function startRace() {
+  R.playerEntry = { ...pEntry };
+  KY.startRace(R);
+  trails = {}; for (const b of R.boats) trails[b.waku] = [];
+  evSeen = 0; $('#ticker').innerHTML = ''; $('#resultUI').hidden = true; resultTimer = null; startUIHideAt = null;
+  $('#startUI').hidden = false; $('#clockWrap').hidden = false; $('#btnOkoshi').disabled = false; $('#stShow').textContent = ''; $('#startHint').hidden = false;
+  { const P = R.player, E = R.entry; $('#startHint').textContent = `あなたは${P.course}コース・${P.slow ? 'スロー' : P.course === E.nSlow + 1 ? 'ダッシュ（カド）' : 'ダッシュ'}（${E.nSlow}対${6 - E.nSlow}${P.deep ? '・深い' : ''}）。${P.ab.start >= 100 ? 'ロケットスタート可：目安±0.3秒で起こせばST .01〜.05。' : '黄色の範囲で起こせばフライングしない（早い端ほど好スタート）。直前はスローになり、黄色の間はボタンが緑に光る。'}`; }
+  $('#tacUI').hidden = true; $('#gaugeUI').hidden = true;
+  const p = KY.posAt(R.player.s, R.player.d); cam = { x: (p.x + KY.LINE_X) / 2, y: p.y };
+  show('#scr-race'); resize();
+  if (!running) { running = true; lastTs = performance.now(); requestAnimationFrame(loop); }
+}
+function resize() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (const [c, w, h] of [[cv, cv.clientWidth, cv.clientHeight], [mini, mini.clientWidth, mini.clientHeight], [clock, clock.clientWidth, clock.clientHeight]]) {
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c._dpr = dpr;
+  }
+}
+window.addEventListener('resize', () => { if (!$('#scr-race').hidden) resize(); });
+
+function okoshi() { if (R && KY.playerTap(R)) { $('#btnOkoshi').disabled = true; $('#startHint').hidden = true; if (R.player.rocket) flash(['ロケット！', '#ff6a1f']); } }
+function turnTap(v = false) {
+  const res = KY.turnTap(R, v); if (!res) return;
+  const early = R.player.plans[KY.segInfo(R.player.s).k]?.tapEarly;
+  flash({ perfect: ['完璧！', '#2fbf71'], good: ['まずまず', '#ffd23f'], bad: [early ? '早い！' : '遅い！', '#e5484d'],
+    vok: ['Vモンキー！', '#ff6a1f'], vhalf: ['V やや膨らむ', '#ffd23f'], vbad: ['V 失敗…', '#e5484d'],
+    wok: ['ウイリー！', '#6fd3ff'], whalf: ['ウイリー まずまず', '#ffd23f'], wbad: ['ウイリー 失速…', '#e5484d'],
+    tok: ['ツケマイ！', '#2fbf71'], thalf: ['ツケマイ 少し離れた', '#ffd23f'], tbad: ['ツケマイ 失敗…', '#e5484d'] }[res]);
+}
+function flash([txt, col]) { const d = document.createElement('div'); d.className = 'flash'; d.textContent = txt; d.style.color = col; $('#scr-race').appendChild(d); setTimeout(() => d.remove(), 950); }
+$('#btnOkoshi').addEventListener('click', okoshi);
+// 巡航：あなたの艇をCPUと同じ自動操縦にして早送り。もう一度押すと手動に戻る
+function toggleCruise() {
+  if (!R || R.done) return;
+  R.cruise = !R.cruise; R.auto = R.cruise; R.prompt = null; R.guardPrompt = null;
+  if (!R.cruise) { const p = R.player; for (let k = 0; k < 6; k++) if (!p.plans[k]) p.prompted[k] = false; }
+  addTicker({ msg: R.cruise ? '巡航：自動でゴールへ' : '手動に戻した', kind: 'info' });
+}
+$('#cruiseBtn').addEventListener('pointerdown', e => { e.preventDefault(); toggleCruise(); });
+function guard(type) { if (R && KY.playerGuard(R, type)) { $('#guardUI').hidden = true; flash(type === 'bump' ? ['幅寄せ！', '#e5484d'] : ['締める！', '#ffd23f']); } }
+$('#gBlock').addEventListener('pointerdown', e => { e.preventDefault(); guard('block'); });
+$('#gBump').addEventListener('pointerdown', e => { e.preventDefault(); guard('bump'); });
+$('#gBar').addEventListener('pointerdown', e => { e.preventDefault(); turnTap(); });
+$('#gTurn').addEventListener('pointerdown', e => { e.preventDefault(); turnTap(); });
+$('#gV').addEventListener('pointerdown', e => { e.preventDefault(); turnTap(true); });
+$('#gW').addEventListener('pointerdown', e => { e.preventDefault(); turnTap('w'); });
+$('#gT').addEventListener('pointerdown', e => { e.preventDefault(); turnTap('t'); });
+cv.addEventListener('pointerdown', () => { if (!R || R.done) return; if (R.player.phase === 'wait') okoshi(); else if (KY.gaugeState(R)) turnTap(); });
+window.addEventListener('keydown', e => {
+  if ($('#scr-race').hidden || !R || R.done) return;
+  if (e.code === 'KeyC' && !$('#cruiseUI').hidden) { e.preventDefault(); toggleCruise(); return; }
+  if (e.code === 'KeyQ' && R.guardPrompt) { e.preventDefault(); guard('block'); return; }
+  if (e.code === 'KeyE' && R.guardPrompt) { e.preventDefault(); guard('bump'); return; }
+  if (e.code === 'KeyV' && KY.canV(R.player)) { e.preventDefault(); turnTap(true); return; }
+  if (e.code === 'KeyW' && KY.canW(R.player)) { e.preventDefault(); turnTap('w'); return; }
+  if (e.code === 'KeyT' && KY.canT(R.player)) { e.preventDefault(); turnTap('t'); return; }
+  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (R.player.phase === 'wait') okoshi(); else turnTap(); }
+  const n = parseInt(e.key, 10); if (R.prompt && n >= 1 && n <= 5) chooseTac(KY.TAC_KEYS[n - 1]);
+});
+const tacLabel = t => t === 'nige' && R && R.prompt && R.prompt.trail ? ['自分のターン', '前を追って自分のラインで'] : TACINFO[t];
+function chooseTac(t) { if (!R.prompt || (R.prompt.avail && !R.prompt.avail.includes(t))) return; const lab = tacLabel(t)[0]; KY.choose(R, t); $('#tacUI').hidden = true; addTicker({ msg: `戦法：${lab}`, kind: 'info' }); }
+
+function loop(ts) {
+  if ($('#scr-race').hidden) { running = false; return; }
+  const dt = Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  if (R && !R.done) {
+    const P0 = R.player, nearGo = P0.phase === 'wait' && R.time > P0.guideTap - 1.2 && R.time < P0.guideTap + KY.GUIDE_LATE + 0.3;
+    const scale = R.prompt ? 0.22 + 0.38 * (1 - R.player.ab.judge / 100) : R.cruise ? 3 : nearGo ? 0.45 : 1;   // 巡航中は3倍速／起こし直前はスロー
+    KY.step(R, dt * scale);
+    trailT += dt * scale;
+    if (trailT > 0.05) { trailT = 0; for (const b of R.boats) { const t = trails[b.waku]; if (b.phase !== 'wait' && b.v > 1) { t.push(KY.posAt(b.s, b.d)); if (t.length > 70) t.shift(); } else if (t.length) t.shift(); } }
+    while (evSeen < R.events.length) addTicker(R.events[evSeen++]);
+    hud();
+  } else if (R && R.done && !resultTimer) { resultTimer = setTimeout(showResult, 1400); hud(); }
+  render(); drawMini(); drawClock();
+  requestAnimationFrame(loop);
+}
+function addTicker(e) {
+  const d = document.createElement('div'); d.className = e.kind; d.textContent = e.msg;
+  const t = $('#ticker'); t.appendChild(d); while (t.children.length > 4) t.firstChild.remove();
+  setTimeout(() => d.remove(), 6500);
+}
+function hud() {
+  const p = R.player, info = KY.segInfo(p.s);
+  let lap;
+  if (p.phase === 'wait' || !p.crossed) lap = R.time < 0 ? `スタート ${Math.abs(R.time).toFixed(1)}秒前` : 'スタート';
+  else if (p.status === 'fin') lap = `ゴール ${p.place}着`;
+  else if (p.status === 'out') lap = p.flag === 'F' ? 'フライング 返還欠場' : '出遅れ 欠場';
+  else if (p.status === 'cap') lap = '転覆 失格';
+  else if (info.turn) lap = KY.turnLabel(info.k) + ' 旋回中';
+  else if (info.k >= 6) lap = 'ゴール前';
+  else lap = `${Math.floor(info.k / 2) + 1}周目 → ${info.k % 2 + 1}マーク`;
+  $('#lapLbl').textContent = lap;
+  $('#spd').textContent = p.phase === 'wait' ? '' : `${Math.round(p.v * 3.6)}km/h`;
+  { const sm = p.stamMax || 1, f = p.stam / sm, tq = p.ab.tech, cost = tq ? KY.COST[tq] : 0;
+    $('#stamFill').style.width = (f * 100) + '%'; $('#stamFill').classList.toggle('low', p.stam < 20 && !p.iron);
+    $('#stamCost').hidden = !cost || cost > sm; $('#stamCost').style.left = (cost / sm * 100) + '%';
+    $('#stamNum').textContent = p.iron ? `${Math.floor(p.stam)} 鉄人` : `${Math.floor(p.stam)}/${sm}`; $('#stamBox').classList.toggle('iron', !!p.iron); }
+  const ord = KY.ranking(R);
+  $('#order').innerHTML = ord.map(b => {
+    const gone = b.status === 'out' || b.status === 'cap';
+    return `<div class="chip ${b.isPlayer ? 'me' : ''} ${gone ? 'gone' : ''}" style="background:${BOAT[b.waku].bg};color:${BOAT[b.waku].fg}">${b.waku}${gone ? `<small>${b.flag}</small>` : ''}</div>`;
+  }).join('');
+  // スタートUI
+  if (p.crossed) {
+    $('#stShow').textContent = 'ST ' + KY.fmtST(p.st);
+    $('#stShow').style.color = p.st < 0 ? 'var(--bad)' : p.st >= 1 ? 'var(--bad)' : p.st <= 0.12 ? 'var(--good)' : 'var(--paper)';
+    if (startUIHideAt === null) startUIHideAt = R.time + 2.2;
+  }
+  { const inWin = p.phase === 'wait' && R.time >= p.guideTap - KY.GUIDE_EARLY && R.time <= p.guideTap + KY.GUIDE_LATE;
+    $('#btnOkoshi').classList.toggle('now', inWin); $('#btnOkoshi').textContent = inWin ? '今！ 起こし' : '起こし！'; }
+  if ((startUIHideAt !== null && R.time > startUIHideAt) || R.prompt) $('#startUI').hidden = true;
+  // 戦法
+  if (R.prompt) {
+    const tu = $('#tacUI');
+    if (tu.hidden || tu.dataset.k != R.prompt.k) {
+      tu.dataset.k = R.prompt.k; tu.hidden = false;
+      $('#tacHead').textContent = KY.turnLabel(R.prompt.k) + '　戦法は？';
+      const fs = R.prompt.foresee;
+      $('#tacFs').hidden = !(fs && fs.length);
+      $('#tacFs').innerHTML = fs && fs.length ? '<span class="fsl">先読み</span>' + fs.map(f => `<span class="fs">${chip(f.waku)}${TACINFO[f.tac][0]}</span>`).join('') : '';
+      $('#tacs').innerHTML = KY.TAC_KEYS.map((t, i) => `<button data-t="${t}" class="${R.prompt.rec === t ? 'rec' : ''}"${R.prompt.avail && !R.prompt.avail.includes(t) ? ' disabled' : ''}><kbd>${i + 1}</kbd><b>${tacLabel(t)[0]}</b><small>${tacLabel(t)[1]}</small></button>`).join('');
+      $('#tacs').querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); chooseTac(b.dataset.t); }));
+    }
+    const d = info.dist, f = Math.max(0, Math.min(1, (d - KY.PROMPT_CLOSE) / (KY.PROMPT_OPEN - KY.PROMPT_CLOSE)));
+    $('#tacTimer').style.width = (f * 100) + '%';
+  } else $('#tacUI').hidden = true;
+  // 巡航：トップで2番手と25m以上離れたら、自動でゴールまで走らせられる
+  { const ord2 = KY.ranking(R), gap = ord2[1] && ord2[1].status === 'race' ? p.s - ord2[1].s : 99;
+    const can = !R.cruise && p.status === 'race' && p.crossed && p.s > KY.TE[0] && ord2[0] === p && gap >= 25 && !R.prompt && !KY.gaugeState(R);
+    const cu = $('#cruiseUI');
+    if (R.cruise && p.status === 'race') { cu.hidden = false; cu.classList.add('on'); $('#cruiseTxt').textContent = `巡航中（2番手と${Math.max(0, Math.round(gap))}m）`; $('#cruiseLbl').textContent = '手動に戻す'; $('#cruiseSub').textContent = '自分で操作する'; }
+    else if (can) { cu.hidden = false; cu.classList.remove('on'); $('#cruiseTxt').textContent = `独走 ${Math.round(gap)}m差`; $('#cruiseLbl').textContent = '巡航'; $('#cruiseSub').textContent = '自動でゴールまで（早送り）'; }
+    else cu.hidden = true; }
+  // 守り（後ろから並ばれそう）
+  const gp = R.guardPrompt;
+  if (gp && !R.prompt && p.status === 'race' && !KY.gaugeState(R)) {
+    $('#guardUI').hidden = false;
+    $('#guardTxt').innerHTML = `${chip(gp.target)} が${gp.side ? '並びかける' : '迫る'}`;
+  } else $('#guardUI').hidden = true;
+  // ターンゲージ
+  const g = KY.gaugeState(R);
+  if (g) {
+    $('#gaugeUI').hidden = false;
+    const P = R.player, pl = P.plans[g.k], own = KY.canV(P) ? 'v' : KY.canW(P) ? 'w' : KY.canT(P) ? 't' : null;
+    const fits = own && KY.techUsable(R, P, own, pl), cv2 = fits && own === 'v', cw2 = fits && own === 'w', ct2 = fits && own === 't';
+    $('#gV').hidden = !cv2; $('#gW').hidden = !cw2; $('#gT').hidden = !ct2;
+    $('#gV').disabled = !KY.stamOK(P, 'v'); $('#gW').disabled = !KY.stamOK(P, 'w'); $('#gT').disabled = !KY.stamOK(P, 't'); $('#gWm').hidden = !(cw2 || ct2); $('#gWm').classList.toggle('t', !!ct2);
+    const lack = fits && !KY.stamOK(P, own);
+    const why = { v: '差しではVモンキーは使えない', w: '前に艇がいないのでウイリーの出番なし', t: 'すぐ内に付ける艇がいないのでツケマイは使えない' };
+    $('#gLegT').hidden = !(cw2 || ct2); $('#gLegT').className = 'lt ' + (ct2 ? 't' : 'w'); $('#gLegT').textContent = ct2 ? 'ツケマイの芯' : 'ウイリーの芯';
+    $('#gHint').textContent = own && !fits ? why[own] : lack ? '体力不足：得意ターンは使えない' : cv2 ? '緑（完璧）の中でVモンキー（外すと大きく流れる）' : cw2 ? '水色の縞でウイリー（遅めに握る）' : ct2 ? '紫の縞でツケマイ（早めに握る）' : '緑で タップ / Space';
+    if (cw2 || ct2) { const wc = g.zone.c + g.zone.hw * (ct2 ? KY.T_SHIFT : KY.W_SHIFT); $('#gWm').style.left = ((wc - g.zone.perfect) * 100) + '%'; $('#gWm').style.width = (g.zone.perfect * 200) + '%'; }
+    $('#gZone').style.left = ((g.zone.c - g.zone.hw) * 100) + '%'; $('#gZone').style.width = (g.zone.hw * 200) + '%';
+    const pf = g.zone.perfect / g.zone.hw; $('#gPerf').style.left = ((1 - pf) / 2 * 100) + '%'; $('#gPerf').style.width = (pf * 100) + '%';
+    $('#gMk').style.left = (g.p * 100) + '%';
+  } else $('#gaugeUI').hidden = true;
+}
+
+// ---------- 描画 ----------
+const HULL = [[2.2, 0], [1.0, 0.95], [-2.0, 0.95], [-2.2, 0.7], [-2.2, -0.7], [-2.0, -0.95], [1.0, -0.95]];
+function render() {
+  const dpr = cv._dpr || 1, W = cv.width / dpr, H = cv.height / dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const sc = Math.max(2.6, Math.min(9, Math.min(W / 100, H / 70)));
+  // カメラ
+  let f = R.player;
+  if (f.status === 'out' || f.status === 'cap' || (R.done && f.status !== 'fin')) f = KY.ranking(R)[0];
+  const fp = KY.posAt(f.s, f.d);
+  let tx = fp.x, ty = fp.y;
+  if (!R.player.crossed && f === R.player) { tx = (fp.x + KY.LINE_X) / 2; ty = 30; }
+  const lerp = 1 - Math.pow(0.0015, 1 / 60);
+  cam.x += (tx - cam.x) * lerp * 2.2; cam.y += (ty - cam.y) * lerp * 2.2;
+  const vw = W / sc, vh = H / sc, x0 = cam.x - vw / 2, y0 = cam.y - vh / 2;
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(sc, sc); ctx.translate(-cam.x, -cam.y);
+  // 陸
+  ctx.fillStyle = '#2b3a36'; ctx.fillRect(x0 - 5, y0 - 5, vw + 10, vh + 10);
+  // 水面
+  ctx.fillStyle = '#0e3e52'; roundRectPath(ctx, -230, -92, 460, 184, 40); ctx.fill();
+  // スタンド側の岸
+  ctx.fillStyle = '#3c4d48'; ctx.fillRect(-230, 92, 460, 30);
+  ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('スタンド', 0, 110);
+  // さざ波
+  const T = performance.now() / 1000, amp = 0.25 + R.cond.wave * 0.12;
+  ctx.strokeStyle = `rgba(160,215,235,${0.08 + R.cond.wave * 0.012})`; ctx.lineWidth = 0.35;
+  const sy = Math.floor(y0 / 5) * 5;
+  for (let y = sy; y < y0 + vh + 5; y += 5) {
+    if (y < -92 || y > 92) continue;
+    ctx.beginPath();
+    for (let x = Math.floor(x0 / 3) * 3; x < x0 + vw + 3; x += 3) {
+      const yy = y + Math.sin(x * 0.21 + T * 1.6 + y * 0.7) * amp;
+      x === Math.floor(x0 / 3) * 3 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  // コースロープ（外側の限界）
+  ctx.fillStyle = '#f1c232';
+  for (let s = 0; s < KY.LAP; s += 7) { const p = KY.posAt(s, 76); ctx.beginPath(); ctx.arc(p.x, p.y, 0.45, 0, 7); ctx.fill(); }
+  // スタートライン
+  ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.4; ctx.setLineDash([2, 1.5]);
+  ctx.beginPath(); ctx.moveTo(KY.LINE_X, 3); ctx.lineTo(KY.LINE_X, 80); ctx.stroke(); ctx.setLineDash([]);
+  // 大時計
+  ctx.fillStyle = '#10181c'; ctx.fillRect(KY.LINE_X - 6, 94, 12, 10);
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.4; ctx.beginPath(); ctx.arc(KY.LINE_X, 99, 3.6, 0, 7); ctx.stroke();
+  // ターンマーク
+  for (const [mx, lbl] of [[KY.HALF, '1M'], [-KY.HALF, '2M']]) {
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(mx + 0.4, 0.5, 1.9, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ff6a1f'; ctx.beginPath(); ctx.arc(mx, 0, 1.9, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(mx, 0, 1.1, 0, 7); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = 'bold 3.6px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(lbl, mx, -4);
+  }
+  // 引き波（エンジンの判定に使っている波点をそのまま描く。時間とともに広がり、薄れる）
+  const W8 = R.wakes || [], bySrc = {};
+  for (const w of W8) (bySrc[w.src] = bySrc[w.src] || []).push(w);
+  const now = R.time;
+  ctx.lineCap = 'round';
+  for (const k in bySrc) {
+    const arr = bySrc[k];
+    for (let i = 1; i < arr.length; i++) {
+      const a = arr[i - 1], b2 = arr[i];
+      if (b2.t0 - a.t0 > 0.15) continue;
+      const age = now - b2.t0, life = 1 - age / KY.WAKE_LIFE;
+      if (life <= 0) continue;
+      const pa = KY.posAt(a.s, a.d), pb = KY.posAt(b2.s, b2.d);
+      if (pb.x < x0 - 20 || pb.x > x0 + vw + 20 || pb.y < y0 - 20 || pb.y > y0 + vh + 20) continue;
+      const hw = 1.2 + age * 1.6, st = b2.str * life;
+      // 点と点を直線で結ばず、中点どうしを曲線でつないで航跡をなめらかにする
+      const pr = i >= 2 && a.t0 - arr[i - 2].t0 <= 0.15 ? KY.posAt(arr[i - 2].s, arr[i - 2].d) : null;
+      const m0 = pr ? { x: (pr.x + pa.x) / 2, y: (pr.y + pa.y) / 2 } : pa, m1 = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
+      const seg = () => { ctx.beginPath(); ctx.moveTo(m0.x, m0.y); if (pr) ctx.quadraticCurveTo(pa.x, pa.y, m1.x, m1.y); else ctx.lineTo(m1.x, m1.y); ctx.stroke(); };
+      ctx.strokeStyle = `rgba(200,235,248,${0.16 * st})`; ctx.lineWidth = hw * 2; seg();
+      ctx.strokeStyle = `rgba(245,252,255,${0.55 * st * life})`; ctx.lineWidth = 0.5 + 0.9 * life; seg();
+    }
+  }
+  ctx.lineCap = 'butt';
+  // ボート
+  const labels = [];
+  for (const b of R.boats) {
+    const p = KY.posAt(b.s, b.d);
+    if (p.x < x0 - 10 || p.x > x0 + vw + 10 || p.y < y0 - 10 || p.y > y0 + vh + 10) continue;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a);
+    if (b.status === 'cap') {
+      ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(0, 0, 3.4, 0, 7); ctx.fill();
+      ctx.rotate(0.9); ctx.globalAlpha = 0.8;
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; hullPath(0.35, 0.45); ctx.fill();
+    ctx.fillStyle = BOAT[b.waku].bg; hullPath(0, 0); ctx.fill();
+    ctx.strokeStyle = b.waku === 2 ? '#8a8a8a' : 'rgba(0,0,0,.6)'; ctx.lineWidth = 0.18; ctx.stroke();
+    ctx.fillStyle = BOAT[b.waku].fg; ctx.beginPath(); ctx.arc(-0.7, 0, 0.55, 0, 7); ctx.fill();
+    ctx.restore();
+    labels.push([b, p]);
+  }
+  ctx.restore();
+  // ラベル（画面座標）
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const [b, p] of labels) {
+    const lr = sc < 5 ? 7.5 : 10;
+    const sx = (p.x - cam.x) * sc + W / 2, syy = (p.y - cam.y) * sc + H / 2 - 2.6 * sc - lr - 2;
+    ctx.fillStyle = BOAT[b.waku].bg; ctx.strokeStyle = b.isPlayer ? '#ffd23f' : 'rgba(0,0,0,.6)'; ctx.lineWidth = b.isPlayer ? 3 : 1;
+    ctx.beginPath(); ctx.arc(sx, syy, lr, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = BOAT[b.waku].fg; ctx.font = `700 ${lr * 1.5}px "Barlow Condensed", sans-serif`; ctx.fillText(b.waku, sx, syy + 1);
+    if (b.isPlayer) { ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.moveTo(sx, syy - lr - 3); ctx.lineTo(sx - 5, syy - lr - 10); ctx.lineTo(sx + 5, syy - lr - 10); ctx.closePath(); ctx.fill(); }
+    if (b.crossed && b.st != null && R.time < 5 && b.status === 'race') {
+      ctx.fillStyle = '#e9f4f8'; ctx.font = '600 12px "Barlow Condensed", sans-serif';
+      ctx.fillText(KY.fmtST(b.st), sx + lr + 12, syy + 1);
+    }
+    if (b.flag && b.status !== 'race') { ctx.fillStyle = '#ff8a8d'; ctx.font = '900 12px "Zen Kaku Gothic New", sans-serif'; ctx.fillText(b.flag === 'F' ? 'F' : b.flag === 'L' ? 'L' : '転覆', sx - 24, syy + 1); }
+  }
+  ctx.textBaseline = 'alphabetic';
+}
+function hullPath(ox, oy) { ctx.beginPath(); HULL.forEach(([x, y], i) => i ? ctx.lineTo(x + ox, y + oy) : ctx.moveTo(x + ox, y + oy)); ctx.closePath(); }
+function roundRectPath(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+
+function drawMini() {
+  const dpr = mini._dpr || 1, W = mini.width / dpr, H = mini.height / dpr;
+  mctx.setTransform(dpr, 0, 0, dpr, 0, 0); mctx.clearRect(0, 0, W, H);
+  const sc = Math.min((W - 12) / 360, (H - 10) / 120);
+  mctx.save(); mctx.translate(W / 2, H / 2); mctx.scale(sc, sc);
+  mctx.strokeStyle = 'rgba(160,215,235,.35)'; mctx.lineWidth = 1 / sc;
+  mctx.beginPath(); for (let s = 0; s <= KY.LAP; s += 4) { const p = KY.posAt(s, 30); s ? mctx.lineTo(p.x, p.y) : mctx.moveTo(p.x, p.y); } mctx.closePath(); mctx.stroke();
+  mctx.fillStyle = '#ff6a1f'; for (const mx of [KY.HALF, -KY.HALF]) { mctx.beginPath(); mctx.arc(mx, 0, 4, 0, 7); mctx.fill(); }
+  mctx.strokeStyle = 'rgba(255,255,255,.6)'; mctx.beginPath(); mctx.moveTo(KY.LINE_X, 6); mctx.lineTo(KY.LINE_X, 60); mctx.stroke();
+  for (const b of R.boats.slice().sort((a, c) => a.isPlayer - c.isPlayer)) {
+    if (b.status === 'cap' || b.status === 'out') continue;
+    const p = KY.posAt(b.s, b.d);
+    mctx.fillStyle = BOAT[b.waku].bg; mctx.beginPath(); mctx.arc(p.x, p.y, (b.isPlayer ? 9 : 6), 0, 7); mctx.fill();
+    mctx.strokeStyle = b.isPlayer ? '#ffd23f' : 'rgba(0,0,0,.6)'; mctx.lineWidth = (b.isPlayer ? 2.5 : 1) / sc; mctx.stroke();
+  }
+  mctx.restore();
+}
+function drawClock() {
+  const hide = $('#startUI').hidden; $('#clockWrap').hidden = hide;
+  if (hide) return;
+  const dpr = clock._dpr || 1, W = clock.width / dpr, H = clock.height / dpr, cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 4, s = r / 60;
+  const c = cctx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  c.fillStyle = 'rgba(6,18,24,.38)'; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2.5 * s; c.stroke();
+  const ang = t => -Math.PI / 2 + (t / 12) * Math.PI * 2;
+  // スタート有効（0〜1秒）
+  c.fillStyle = 'rgba(34,211,107,.45)'; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, r - 3 * s, ang(0), ang(1)); c.closePath(); c.fill();
+  const p = R.player;
+  if (p.phase === 'wait') {
+    c.fillStyle = 'rgba(255,210,63,.85)'; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, r - 3 * s, ang(p.guideTap - KY.GUIDE_EARLY), ang(p.guideTap + KY.GUIDE_LATE)); c.closePath(); c.fill();
+    c.strokeStyle = '#ffd23f'; c.lineWidth = 10 * s; c.beginPath(); c.arc(cx, cy, r - 9 * s, ang(p.guideTap - KY.GUIDE_EARLY), ang(p.guideTap + KY.GUIDE_LATE)); c.stroke();
+  } else if (p.tapAt != null) {
+    c.strokeStyle = 'rgba(255,210,63,.95)'; c.lineWidth = 5 * s; c.beginPath(); c.arc(cx, cy, r - 7 * s, ang(p.tapAt) - 0.03, ang(p.tapAt) + 0.03); c.stroke();
+  }
+  for (let i = 0; i < 12; i++) { const a = ang(i); c.strokeStyle = i === 0 ? '#ff6a1f' : 'rgba(230,240,245,.85)'; c.lineWidth = (i === 0 ? 4 : 2) * s; c.beginPath(); c.moveTo(cx + Math.cos(a) * (r - 4 * s), cy + Math.sin(a) * (r - 4 * s)); c.lineTo(cx + Math.cos(a) * (r - (i === 0 ? 16 : 11) * s), cy + Math.sin(a) * (r - (i === 0 ? 16 : 11) * s)); c.stroke(); }
+  const t = Math.min(R.time, 1.5), a = ang(t);
+  // 針：根元が太く先端が尖った形（黒い縁で浮かせる）
+  const needle = (len, w, tail) => {
+    const ux = Math.cos(a), uy = Math.sin(a), nx = -uy, ny = ux;
+    c.beginPath();
+    c.moveTo(cx + ux * len, cy + uy * len);
+    c.lineTo(cx + nx * w, cy + ny * w);
+    c.lineTo(cx - ux * tail, cy - uy * tail);
+    c.lineTo(cx - nx * w, cy - ny * w);
+    c.closePath();
+  };
+  c.lineJoin = 'miter';
+  needle(r - 6 * s, 4.5 * s, 10 * s); c.fillStyle = '#fff'; c.fill();
+  c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 1.5 * s; c.stroke();
+  c.fillStyle = '#ff6a1f'; c.beginPath(); c.arc(cx, cy, 5 * s, 0, 7); c.fill();
+  c.font = `700 ${Math.round(16 * s)}px "Barlow Condensed", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineWidth = 4 * s; c.strokeStyle = 'rgba(0,0,0,.6)'; c.fillStyle = '#fff';
+  const txt = R.time < 0 ? R.time.toFixed(2) : '+' + Math.min(R.time, 9.99).toFixed(2);
+  c.strokeText(txt, cx, cy + r * 0.48); c.fillText(txt, cx, cy + r * 0.48);
+  c.textBaseline = 'alphabetic';
+}
+
+// ---------- 結果 ----------
+function showResult() {
+  const p = R.player, res = R.result;
+  const big = p.status === 'fin' ? `${p.place}着` : p.flag === 'F' ? 'フライング' : p.flag === 'L' ? '出遅れ' : p.status === 'cap' ? '転覆' : '失格';
+  const sub = p.status === 'fin' ? (p.place === 1 ? `優勝！ 決まり手「${R.kimarite}」` : p.place <= 3 ? '舟券に絡んだ' : '着外') : '返還・失格';
+  const rows = res.map(b => {
+    const pl = b.status === 'fin' ? b.place : b.flag === '転' ? '転' : b.flag || '欠';
+    const tac = b.plans[0] ? TACINFO[b.plans[0].tac][0] : '—';
+    return `<tr class="${b.isPlayer ? 'me' : ''}"><td class="p">${pl}</td><td>${chip(b.waku)}</td><td style="font-weight:700">${esc(b.name)}</td><td class="num" style="font-size:17px">ST ${KY.fmtST(b.st)}</td><td style="color:var(--muted);font-size:12px">${b.course}コース・1M ${tac}</td></tr>`;
+  }).join('');
+  $('#resultUI').innerHTML = `<div class="sheet">
+    <div class="resbig"><b>${big}</b><span>${esc(p.name)}・${p.waku}号艇　${sub}</span></div>
+    <div class="kim"><div><span>決まり手</span><b>${R.kimarite}</b></div><div><span>3連単</span><b class="num" style="font-size:24px">${R.trifecta || '不成立'}</b></div>
+    <div><span>水面</span><b style="font-size:15px">${R.cond.ws ? dirLbl[R.cond.dir] + R.cond.ws + 'm' : '無風'}・波${R.cond.wave}cm</b></div></div>
+    <div class="tblwrap"><table class="res">${rows}</table></div>
+    <div class="cta" style="margin-top:16px"><button class="btn" id="rSetup">能力を作り直す</button><button class="btn" id="rAgain">同じ番組で再戦</button><button class="btn primary" id="rNext">次のレースへ</button></div>
+  </div>`;
+  $('#resultUI').hidden = false;
+  if (SC) {
+    const pts = p.status === 'fin' ? SR.PTS[p.place - 1] : 0;
+    $('#resultUI').querySelector('.cta').innerHTML = `<button class="btn primary" id="rSeries">シリーズ表へ</button>`;
+    $('#resultUI').querySelector('.resbig span').textContent += SC.kind === '予選' ? `　予選得点 +${pts}` : '';
+    SR.record(SC.raceId, R);
+    $('#rSeries').onclick = () => { SC = null; SR.hub(); };
+    return;
+  }
+  $('#rSetup').onclick = () => { buildSetup(); show('#scr-setup'); };
+  $('#rNext').onclick = () => { raceNo++; newRace(); };
+  $('#rAgain').onclick = () => { const seed = R.seed, waku = R.player.waku; R = KY.createRace({ name: cfg.name, ab: cfg.ab, style: cfg.style, fav: cfg.fav, tech: cfg.tech, total: TOTAL }, { seed, playerWaku: waku, playerTilt: lastTilt, propDir }); buildCard(); show('#scr-card'); };
+}
+
+
+// ---------- 4日間シリーズ（一般戦） ----------
+const SR = (() => {
+  const KEY = 'hagashira.series';
+  const PTS = [10, 8, 6, 4, 2, 1];
+  const BASE = [0.52, 0.175, 0.145, 0.085, 0.035, 0.012]; // コース別の基礎勝率（本編CPU同士の実測に合わせた）
+  const DAYLBL = ['予選', '予選', '予選・準優', '優勝戦'];
+  let S = store.get(KEY);
+  const save = () => store.set(KEY, S);
+  const rnd = () => Math.random();
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const racer = id => S.racers[id];
+
+  function create() {
+    const rng = KY.mulberry32((Math.random() * 4294967296) >>> 0);
+    const used = new Set([cfg.name]);
+    const nos = shuffle(Array.from({ length: 68 }, (_, i) => i + 11));
+    const motor = () => ({ burst: Math.max(5, Math.min(95, Math.round(50 + KY.gauss(rng) * 18))), start: Math.max(5, Math.min(95, Math.round(50 + KY.gauss(rng) * 18))), power: Math.max(5, Math.min(95, Math.round(50 + KY.gauss(rng) * 18))) });
+    const racers = [{ id: 0, isPlayer: true, name: cfg.name, ab: { ...cfg.ab, style: cfg.style, fav: cfg.fav, tech: cfg.tech || null }, motor: motor(), motorNo: nos[0] }];
+    for (let i = 1; i < 48; i++) {
+      const ab = KY.randomAb(rng, TOTAL);
+      const cab = { ...ab, style: Math.round(rng() * 100), fav: ['in', 'center', 'out'][Math.floor(rng() * 3)] }; cab.tech = KY.assignTech(cab, rng);
+      racers.push({ id: i, isPlayer: false, name: KY.randomName(rng, used), ab: cab, motor: motor(), motorNo: nos[i] });
+    }
+    const conds = [0, 1, 2, 3].map(() => KY.makeCond(rng));
+    // 予選：4巡。各巡で全48人を8レースに振り分け（1人4走）。枠はなるべく重ならないように配る
+    const used6 = racers.map(() => new Set());
+    const rounds = [];
+    for (let r = 0; r < 4; r++) {
+      const ids = shuffle(racers.map(x => x.id)), races = [];
+      for (let k = 0; k < 8; k++) {
+        const g = ids.slice(k * 6, k * 6 + 6), lineup = new Array(6);
+        for (const w of shuffle([0, 1, 2, 3, 4, 5])) {
+          let best = null;
+          for (const id of g) if (!lineup.includes(id) && (best === null || (used6[best].has(w) && !used6[id].has(w)))) best = id;
+          lineup[w] = best; used6[best].add(w);
+        }
+        races.push(lineup);
+      }
+      rounds.push(races);
+    }
+    const races = [];
+    const add = (day, rno, kind, lineup) => races.push({ id: races.length, day, rno, kind, lineup, res: null });
+    rounds[0].forEach((l, i) => add(1, i + 1, '予選', l));
+    rounds[1].slice(0, 4).forEach((l, i) => add(1, i + 9, '予選', l));
+    rounds[1].slice(4).forEach((l, i) => add(2, i + 1, '予選', l));
+    rounds[2].forEach((l, i) => add(2, i + 5, '予選', l));
+    rounds[3].forEach((l, i) => add(3, i + 1, '予選', l));
+    [10, 11, 12].forEach(rno => add(3, rno, '準優勝戦', null));
+    add(4, 10, '一般戦', null);
+    add(4, 12, '優勝戦', null);
+    S = { racers, conds, races, done: false, tilt: lastTilt, n: (store.get('hagashira.seriesNo') || 0) + 1 };
+    store.set('hagashira.seriesNo', S.n);
+    save();
+  }
+
+  // 予選成績
+  function standings() {
+    const st = S.racers.map(r => ({ id: r.id, pts: 0, n: 0, rides: [], out: false }));
+    for (const race of S.races) {
+      if (race.kind !== '予選' || !race.res) continue;
+      race.lineup.forEach(id => {
+        const s = st[id], f = race.res.flags[id], pl = race.res.order.indexOf(id);
+        s.n++;
+        if (f) { s.rides.push(f); if (f === 'F' || f === 'L') s.out = true; }
+        else { s.pts += PTS[pl]; s.rides.push(pl + 1); }
+      });
+    }
+    st.forEach(s => { s.rate = s.n ? s.pts / s.n : 0; });
+    return st.slice().sort((a, b) => (a.out - b.out) || (b.rate - a.rate) || (b.pts - a.pts) || (a.id - b.id));
+  }
+  const yosenDone = () => S.races.every(r => r.kind !== '予選' || r.res);
+
+  function fillLineups() {
+    const jun = S.races.filter(r => r.kind === '準優勝戦');
+    if (!jun[0].lineup && yosenDone()) {
+      const top = standings().filter(s => !s.out).slice(0, 18).map(s => s.id);
+      // 予選1〜3位が各準優の1号艇（1位は12R）、4〜6位が2号艇…
+      jun.forEach(r => { r.lineup = new Array(6); });
+      top.forEach((id, i) => { const race = jun[2 - (i % 3)]; race.lineup[Math.floor(i / 3)] = id; });
+      jun.forEach(r => { r.lineup = r.lineup.filter(x => x !== undefined); });
+      save();
+    }
+    const fin = S.races.find(r => r.kind === '優勝戦'), ip = S.races.find(r => r.kind === '一般戦');
+    if (!fin.lineup && jun.every(r => r.res)) {
+      const rankOf = {}; standings().forEach((s, i) => { rankOf[s.id] = i; });
+      const byPlace = pl => jun.map(r => r.res.order[pl]).filter(x => x !== undefined).sort((a, b) => rankOf[a] - rankOf[b]);
+      let L = [...byPlace(0), ...byPlace(1)];
+      for (let pl = 2; L.length < 6 && pl < 6; pl++) L = L.concat(byPlace(pl));
+      fin.lineup = L.slice(0, 6);
+      if (!fin.lineup.includes(0)) {
+        const pool = shuffle(S.racers.map(r => r.id).filter(id => id !== 0 && !fin.lineup.includes(id))).slice(0, 5);
+        const lu = shuffle([0, ...pool]); ip.lineup = lu;
+      } else ip.lineup = [];
+      save();
+    }
+  }
+
+  // CPU同士のレースは確率モデルで瞬時に決着（コース別基礎勝率×能力×モーター）
+  function simRace(race) {
+    const flags = {}, alive = [];
+    race.lineup.forEach((id, i) => {
+      const r = racer(id), a = r.ab, mot = (r.motor.burst + r.motor.start + r.motor.power) / 300;
+      const score = (0.35 * a.turn + 0.25 * a.start + 0.15 * a.judge + 0.1 * a.prop) / 85 * 0.75 + 0.25 * mot + (a.fav === KY.courseZone(i + 1) ? 0.04 : 0);
+      const u = rnd();
+      if (u < 0.003) flags[id] = 'F'; else if (u < 0.007) flags[id] = '転';
+      else alive.push({ id, w: BASE[i] * Math.exp(2.4 * (score - 0.5)) });
+    });
+    const order = [];
+    while (alive.length) {
+      const sum = alive.reduce((s, x) => s + x.w, 0); let t = rnd() * sum, k = 0;
+      while (t > alive[k].w) { t -= alive[k].w; k++; }
+      order.push(alive.splice(k, 1)[0].id);
+    }
+    race.res = { order, flags, sim: true };
+  }
+
+  function record(raceId, Rr) {
+    const race = S.races[raceId];
+    const fin = Rr.boats.filter(b => b.status === 'fin').sort((a, b) => a.place - b.place);
+    const flags = {};
+    Rr.boats.forEach(b => { if (b.status !== 'fin') flags[b.rid] = b.flag === '転' ? '転' : b.flag === 'F' ? 'F' : b.flag === 'L' ? 'L' : '欠'; });
+    race.res = { order: fin.map(b => b.rid), flags, kim: Rr.kimarite };
+    save();
+  }
+
+  // 次の自分のレースまで、ほかのレースを進める
+  function advance() {
+    fillLineups();
+    for (const race of S.races) {
+      if (race.res) continue;
+      if (!race.lineup) { fillLineups(); if (!race.lineup) return race; }
+      if (!race.lineup.length) { race.res = { order: [], flags: {}, skip: true }; continue; }
+      if (race.lineup.includes(0)) return race;
+      simRace(race); fillLineups();
+    }
+    S.done = true; save();
+    return null;
+  }
+
+  function play(race) {
+    const lineup = race.lineup.map(id => racer(id));
+    const base = S.conds[race.day - 1], c = { ...base };
+    c.ws = Math.max(0, Math.min(8, base.ws + Math.round(rnd() * 2 - 1)));
+    if (!c.ws) { c.dir = 'calm'; c.tail = 0; c.cross = 0; } else { if (base.dir === 'calm') c.dir = 'head'; c.tail = c.dir === 'tail' ? c.ws : c.dir === 'head' ? -c.ws : 0; c.cross = (c.dir === 'left' || c.dir === 'right') ? c.ws : 0; }
+    c.wave = Math.max(0, base.wave + Math.round(rnd() * 2 - 1));
+    R = KY.createRace({ name: cfg.name, ab: cfg.ab, style: cfg.style, fav: cfg.fav, total: TOTAL }, { lineup, cond: c, playerTilt: lastTilt, propDir });
+    SC = { raceId: race.id, kind: race.kind, label: `${race.day}日目 ${race.rno}R ${race.kind}` };
+    buildCard(); show('#scr-card');
+  }
+
+  const rideChips = rides => `<span class="rides">${rides.map(x => `<i class="${x === 1 ? 'w1' : x === 2 ? 'w2' : typeof x === 'string' ? 'bad' : ''}">${x}</i>`).join('')}</span>`;
+  function lineupBox(race, title) {
+    const res = race.res;
+    return `<div class="lu"><h3>${title}<span>${race.day}日目 ${race.rno}R</span></h3><ol>${race.lineup.map((id, i) => {
+      const r = racer(id); let tag = '';
+      if (res) { const pl = res.order.indexOf(id); tag = pl >= 0 ? `${pl + 1}着` : (res.flags[id] || ''); }
+      return `<li class="${r.isPlayer ? 'me' : ''}">${chip(i + 1)}<span>${esc(r.name)}${r.isPlayer ? '（あなた）' : ''}</span><em>${tag}</em></li>`;
+    }).join('')}</ol></div>`;
+  }
+
+  function hub() {
+    if (!S) { create(); }
+    const next = advance();
+    const st = standings(), meIdx = st.findIndex(s => s.id === 0), me = st[meIdx];
+    const curDay = next ? next.day : 4;
+    $('#srSub').textContent = `第${S.n}節　一般戦　4日間`;
+    $('#srDays').innerHTML = [1, 2, 3, 4].map(d => `<div class="${d === curDay && !S.done ? 'now' : d < curDay || S.done ? 'done' : ''}"><b>${d}日目</b><span>${DAYLBL[d - 1]}</span></div>`).join('');
+    // 次のレース
+    if (next) {
+      const pos = next.lineup.indexOf(0) + 1;
+      const c = S.conds[next.day - 1];
+      $('#srNext').innerHTML = `<div class="nextcard"><div><div class="t">あなたの次のレース</div><div class="h">${next.day}日目 ${next.rno}R ${next.kind}</div>
+        <div class="s">${pos}号艇　${c.weather}・${c.ws ? dirLbl[c.dir] + c.ws + 'm' : '無風'}・波${c.wave}cm</div></div><button class="btn primary" id="srGo">出走表へ</button></div>`;
+      $('#srGo').onclick = () => play(next);
+    } else $('#srNext').innerHTML = '';
+    // 本体
+    let body = '';
+    const fin = S.races.find(r => r.kind === '優勝戦'), jun = S.races.filter(r => r.kind === '準優勝戦');
+    if (S.done && fin.res) {
+      const w = racer(fin.res.order[0]);
+      const myFin = fin.lineup.includes(0) ? (fin.res.order.indexOf(0) >= 0 ? `優勝戦 ${fin.res.order.indexOf(0) + 1}着` : `優勝戦 ${fin.res.flags[0] || '失格'}`)
+        : jun.some(r => r.lineup.includes(0)) ? '準優勝戦で敗退' : me.out ? '賞典除外' : `予選${meIdx + 1}位で敗退`;
+      body += `<div class="champ"><div class="eyebrow">優勝</div><b>${w ? esc(w.name) : '—'}${w && w.isPlayer ? '（あなた）' : ''}</b><div style="margin-top:6px;font-weight:700">あなたの成績：${myFin}　予選 ${me.rate.toFixed(2)}点（${meIdx + 1}位）</div></div>`;
+      $('#srNext').innerHTML = `<div class="cta" style="margin-bottom:16px"><button class="btn" id="srSetup">能力を作り直す</button><button class="btn primary" id="srNew">次の節へ（同じ能力）</button></div>`;
+      $('#srNew').onclick = () => { S = null; store.set(KEY, null); hub(); };
+      $('#srSetup').onclick = () => { S = null; store.set(KEY, null); buildSetup(); show('#scr-setup'); };
+    }
+    if (fin.lineup && fin.lineup.length) body += `<div class="sec"><h2>優勝戦</h2></div><div class="lineups">${lineupBox(fin, '優勝戦')}</div>`;
+    if (jun[0].lineup) body += `<div class="sec"><h2>準優勝戦</h2><span>各レース2着までが優勝戦へ</span></div><div class="lineups">${jun.slice().reverse().map(r => lineupBox(r, '準優勝戦')).join('')}</div>`;
+    const showN = 20, rows = st.slice(0, showN);
+    if (meIdx >= showN) rows.push(me);
+    body += `<div class="sec"><h2>予選順位</h2><span>上位18名が準優勝戦へ（F・Lは賞典除外）　1着10・2着8・3着6・4着4・5着2・6着1</span></div>
+      <div style="overflow-x:auto"><table class="st"><tr><th></th><th>選手</th><th style="text-align:right">得点率</th><th>着順</th><th class="hide-s">ST/ターン</th></tr>${rows.map(s => {
+        const r = racer(s.id), i = st.indexOf(s);
+        return `<tr class="${r.isPlayer ? 'me' : ''} ${i === 17 ? 'cut' : ''} ${s.out ? 'out' : ''}"><td class="r">${i + 1}</td><td class="nm">${esc(r.name)}${r.isPlayer ? '（あなた）' : ''}${s.out ? '　除外' : ''}</td>
+          <td class="pt">${s.n ? s.rate.toFixed(2) : '—'}</td><td>${rideChips(s.rides)}</td><td class="hide-s num" style="color:var(--muted)">${r.ab.start}/${r.ab.turn}</td></tr>`;
+      }).join('')}</table></div>`;
+    $('#srBody').innerHTML = body;
+    $('#srQuit').hidden = !!S.done;
+    show('#scr-series');
+  }
+  $('#srQuit').onclick = () => { S = null; store.set(KEY, null); buildSetup(); show('#scr-setup'); };
+  $('#srStart').onclick = () => { store.set('hagashira.cfg', cfg); S = null; create(); hub(); };
+  $('#srResume').onclick = () => hub();
+  const hasSaved = () => !!(S && !S.done);
+  return { PTS, record, hub, hasSaved };
+})();
+const _bs = buildSetup;
+buildSetup = function () { _bs(); $('#srResume').hidden = !SR.hasSaved(); };
+
+buildSetup();
+})();
+</script>
+</body>
+</html>
