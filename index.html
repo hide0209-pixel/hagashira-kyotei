@@ -323,6 +323,20 @@ table.st tr.out td { color: var(--muted); }
   .cta { flex-direction: column-reverse; align-items: stretch; }
   .cta .btn { width: 100%; padding: 12px; }
 }
+.drawbox { border: 2px solid var(--ink); background: #fff; padding: 16px; display: grid; gap: 14px; margin: 6px 0 4px; }
+.drhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.drno span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: .1em; }
+.drno b { font-family: var(--font-num); font-size: 64px; line-height: .9; font-weight: 700; }
+.drno.spin b { color: var(--muted); }
+.drrank { font-family: var(--font-display); font-size: 24px; padding: 4px 12px; border: 2px solid var(--ink); }
+.drrank:empty { display: none; }
+.drrank.ace { background: var(--buoy); border-color: var(--buoy); color: #1a0d05; }
+.drrank.good { background: var(--good); border-color: var(--good); color: #04210f; }
+.drrank.low, .drrank.bad { background: #5b6d77; border-color: #5b6d77; color: #fff; }
+.drinfo { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; font-weight: 700; }
+.drinfo div span { display: block; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+.drinfo div b { font-family: var(--font-num); font-size: 22px; }
+#drBtn { font-size: 18px; padding: 14px 28px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 </head>
@@ -356,12 +370,28 @@ table.st tr.out td { color: var(--muted); }
   </div>
 </section>
 
+<section id="scr-draw" class="screen" hidden>
+  <div class="wrap">
+    <div class="brand"><h1>波頭<span>記念</span></h1><p id="drSub"></p></div>
+    <div class="sheet">
+      <h2 id="drTitle">モーター抽選</h2>
+      <p class="lead" id="drLead"></p>
+      <div class="drawbox">
+        <div class="drhead"><div class="drno" id="drNoBox"><span>モーターNo.</span><b id="drNo">??</b></div><div class="drrank" id="drRank"></div></div>
+        <div class="meters" id="drMeters"></div>
+        <div class="drinfo" id="drInfo"></div>
+      </div>
+      <div class="cta" style="margin-top:18px"><button class="btn" id="drBack">戻る</button><button class="btn primary" id="drBtn">モーター抽選</button><button class="btn primary" id="drNext" hidden>出走表へ</button></div>
+    </div>
+  </div>
+</section>
+
 <section id="scr-card" class="screen" hidden>
   <div class="wrap">
     <div class="brand"><h1>波頭<span>記念</span></h1><p id="raceSub">第1レース　3周</p></div>
     <div class="sheet">
       <h2>出走表</h2>
-      <p class="lead">枠番・水面・モーターは抽選済み。チルトだけはあなたが決めます。</p>
+      <p class="lead">枠番・水面は抽選済み、モーターはあなたが引いた機体。チルトはあなたが決めます。</p>
       <div class="cond" id="cond"></div>
       <div class="tblwrap"><table class="card" id="cardTbl"></table></div>
       <div class="boatcards" id="cardList"></div>
@@ -592,12 +622,13 @@ const KY = (() => {
       ab.tech = techOf(ab);
       const motor = {}, eff = {};
       for (const k of ['burst', 'start', 'power']) motor[k] = clamp(Math.round(50 + gauss(rng) * 18), 5, 95);
+      const pm = isP && opts.playerMotor; if (pm) Object.assign(motor, pm.motor);
       const propDir = isP ? (opts.propDir || 'bal') : pick(rng, PROP_DIRS);
       const adj = propAdj(rng, ab, propDir);
       for (const k of ['burst', 'start', 'power']) eff[k] = clamp(motor[k] + adj[k], 0, 100);
       boats.push({
         waku: w, course: w, isPlayer: isP, name: isP ? player.name : randomName(rng, used), ab,
-        motorNo: 11 + Math.floor(rng() * 68), motor, adj, eff, propDir,
+        motorNo: pm ? pm.motorNo : 11 + Math.floor(rng() * 68), motor, adj, eff, propDir,
         tilt: isP ? (opts.playerTilt ?? 0) : cpuTilt(rng, w, cond),
       });
     }
@@ -1464,7 +1495,7 @@ const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } cat
 let cfg = store.get('hagashira.cfg') || { name: 'プレイヤー', ab: { start: 55, turn: 55, judge: 45, stam: 40, prop: 45 }, style: 40, fav: 'in' };
 let SC = null, R = null, raceNo = 1, lastTilt = 0, pEntry = { mae: 0, form: 'auto' }, propDir = 'bal';
 
-function show(id) { for (const s of ['#scr-setup', '#scr-card', '#scr-race', '#scr-series']) $(s).hidden = s !== id; window.scrollTo(0, 0); }
+function show(id) { for (const s of ['#scr-setup', '#scr-draw', '#scr-card', '#scr-race', '#scr-series']) $(s).hidden = s !== id; window.scrollTo(0, 0); }
 const chip = (w, extra = '') => `<span class="wk" style="background:${BOAT[w].bg};color:${BOAT[w].fg}${extra}">${w}</span>`;
 
 // ---------- 能力設定 ----------
@@ -1525,7 +1556,61 @@ function refreshSetup() {
   const tq = KY.techOf({ ...cfg.ab, style: cfg.style }); cfg.tech = tq;
   $('#techShow').innerHTML = tq ? `<span class="badge ${tq}">${{ v: 'Vモンキー', w: 'ウイリー', t: '全速ツケマイ' }[tq]}</span>` : '<span style="color:var(--muted);font-weight:700">なし（条件は下の説明）</span>';
 }
-$('#toCard').addEventListener('click', () => { store.set('hagashira.cfg', cfg); newRace(); });
+// ---------- モーター抽選 ----------
+const genMotor = rng => { const g = () => Math.max(5, Math.min(95, Math.round(50 + KY.gauss(rng) * 18))); return { burst: g(), start: g(), power: g() }; };
+const mSum = m => m.burst + m.start + m.power;
+const mGrade = s => s >= 186 ? ['エース機', 'ace'] : s >= 165 ? ['好素性', 'good'] : s >= 135 ? ['普通', ''] : s >= 114 ? ['低調', 'low'] : ['ワースト級', 'bad'];
+const ren2 = m => Math.max(10, Math.min(65, Math.round(33 + (mSum(m) / 3 - 50) * 0.8)));
+function makePool() {
+  const rng = KY.mulberry32((Math.random() * 4294967296) >>> 0);
+  const nos = Array.from({ length: 68 }, (_, i) => i + 11);
+  for (let i = nos.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [nos[i], nos[j]] = [nos[j], nos[i]]; }
+  return Array.from({ length: 48 }, (_, i) => ({ motor: genMotor(rng), motorNo: nos[i] }));
+}
+let drawTimer = null;
+function drawMeters(m) {
+  $('#drMeters').innerHTML = [['瞬発力', 'burst'], ['スタート', 'start'], ['パワー', 'power']].map(([l, k]) => `<div class="meter"><span>${l}</span><div class="bar"><i style="width:${m ? m[k] : 0}%"></i></div><span class="num">${m ? m[k] : '—'}</span></div>`).join('');
+}
+// opt: { title, sub, lead, pool, onDraw(i), nextLabel, next, back }
+function openDraw(opt) {
+  clearInterval(drawTimer);
+  $('#drTitle').textContent = opt.title; $('#drSub').textContent = opt.sub; $('#drLead').textContent = opt.lead;
+  $('#drNo').textContent = '??'; $('#drNoBox').classList.remove('spin'); $('#drRank').textContent = ''; $('#drRank').className = 'drrank';
+  $('#drInfo').innerHTML = ''; drawMeters(null);
+  $('#drBtn').hidden = false; $('#drBtn').disabled = false; $('#drNext').hidden = true; $('#drNext').textContent = opt.nextLabel; $('#drBack').hidden = false;
+  $('#drBack').onclick = () => { clearInterval(drawTimer); opt.back(); };
+  $('#drNext').onclick = () => opt.next();
+  $('#drBtn').onclick = () => {
+    $('#drBtn').disabled = true; $('#drBack').hidden = true;
+    const i = Math.floor(Math.random() * opt.pool.length), pick = opt.pool[i];
+    const reveal = () => {
+      clearInterval(drawTimer); $('#drNoBox').classList.remove('spin');
+      $('#drNo').textContent = pick.motorNo; drawMeters(pick.motor);
+      const s = mSum(pick.motor), [g, cls] = mGrade(s);
+      const rank = 1 + opt.pool.filter(x => mSum(x.motor) > s).length;
+      $('#drRank').textContent = g; $('#drRank').className = 'drrank ' + cls;
+      $('#drInfo').innerHTML = `<div><span>総合</span><b>${s}</b>／285</div><div><span>全${opt.pool.length}機中</span><b>${rank}</b>位</div><div><span>2連対率</span><b>${ren2(pick.motor)}</b>%</div>`;
+      opt.onDraw(i);
+      $('#drBtn').hidden = true; $('#drNext').hidden = false;
+    };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { reveal(); return; }
+    $('#drNoBox').classList.add('spin');
+    const t0 = performance.now();
+    drawTimer = setInterval(() => {
+      const r = opt.pool[Math.floor(Math.random() * opt.pool.length)];
+      $('#drNo').textContent = r.motorNo; drawMeters(r.motor);
+      if (performance.now() - t0 > 1300) reveal();
+    }, 70);
+  };
+  show('#scr-draw');
+}
+let pMotor = null;
+function startSingle() {
+  const pool = makePool();
+  openDraw({ title: 'モーター抽選', sub: `第${raceNo}レース　3周`, lead: '全48機から1機を引きます。このレースはこのモーターで走ります。',
+    pool, onDraw: i => { pMotor = pool[i]; }, nextLabel: '出走表へ', next: newRace, back: () => { buildSetup(); show('#scr-setup'); } });
+}
+$('#toCard').addEventListener('click', () => { store.set('hagashira.cfg', cfg); startSingle(); });
 
 // ---------- 出走表 ----------
 const dirLbl = { calm: '無風', tail: '追い風', head: '向かい風', left: '左横風', right: '右横風' };
@@ -1536,13 +1621,13 @@ const tiltStr = t => (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t).toFixed(1)
 
 function newRace() {
   SC = null;
-  R = KY.createRace({ name: cfg.name, ab: cfg.ab, style: cfg.style, fav: cfg.fav, tech: cfg.tech, total: TOTAL }, { playerTilt: lastTilt, propDir });
+  R = KY.createRace({ name: cfg.name, ab: cfg.ab, style: cfg.style, fav: cfg.fav, tech: cfg.tech, total: TOTAL }, { playerTilt: lastTilt, propDir, playerMotor: pMotor });
   buildCard(); show('#scr-card');
 }
 function buildCard() {
   const c = R.cond;
   $('#raceSub').textContent = SC ? `${SC.label}　あなたは${R.player.waku}号艇` : `第${raceNo}レース　3周　あなたは${R.player.waku}号艇`;
-  $('#backSetup').hidden = !!SC; $('#reroll').hidden = !!SC;
+  $('#backSetup').hidden = !!SC; $('#reroll').hidden = !!SC; $('#reroll').textContent = '別の番組にする（モーター再抽選）';
   $('#cond').innerHTML = [
     ['天候', c.weather], ['風', c.ws ? `${dirLbl[c.dir]} ${c.ws}m` : '無風'], ['波高', `${c.wave}cm`], ['水面', hardLbl(c.hard)],
   ].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('');
@@ -1597,7 +1682,7 @@ function refreshTilt() {
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 $('#backSetup').addEventListener('click', () => { buildSetup(); show('#scr-setup'); });
-$('#reroll').addEventListener('click', () => { raceNo++; newRace(); });
+$('#reroll').addEventListener('click', () => { raceNo++; startSingle(); });
 $('#go').addEventListener('click', startRace);
 
 // ---------- レース ----------
@@ -2015,7 +2100,7 @@ const SR = (() => {
     [10, 11, 12].forEach(rno => add(3, rno, '準優勝戦', null));
     add(4, 10, '一般戦', null);
     add(4, 12, '優勝戦', null);
-    S = { racers, conds, races, done: false, tilt: lastTilt, n: (store.get('hagashira.seriesNo') || 0) + 1 };
+    S = { racers, conds, races, done: false, drawn: false, tilt: lastTilt, n: (store.get('hagashira.seriesNo') || 0) + 1 };
     store.set('hagashira.seriesNo', S.n);
     save();
   }
@@ -2127,6 +2212,13 @@ const SR = (() => {
 
   function hub() {
     if (!S) { create(); }
+    if (S.drawn === false) {
+      const pool = S.racers.map(r => ({ motor: r.motor, motorNo: r.motorNo }));
+      openDraw({ title: '前検日　モーター抽選', sub: `第${S.n}節　一般戦　4日間`, lead: '全48機から1機を引きます。この節の4日間はずっとこのモーターで走ります。',
+        pool, onDraw: i => { const me = S.racers[0], o = S.racers[i]; [me.motor, o.motor] = [o.motor, me.motor]; [me.motorNo, o.motorNo] = [o.motorNo, me.motorNo]; S.drawn = true; save(); },
+        nextLabel: 'シリーズ表へ', next: hub, back: () => { buildSetup(); show('#scr-setup'); } });
+      return;
+    }
     const next = advance();
     const st = standings(), meIdx = st.findIndex(s => s.id === 0), me = st[meIdx];
     const curDay = next ? next.day : 4;
